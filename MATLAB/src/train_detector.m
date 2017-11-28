@@ -1,13 +1,12 @@
 [n_obs,n_vars]=size(T);
-[trainInd,valInd,testInd] = divideblock(n_obs,0.8,0,0.2);
+[trainInd,valInd,testInd] = divideblock(n_obs,0.8,0.05,0.15);
 trainingData=T(trainInd,:);
-%validateData=T(valInd,:);
+validateData=T(valInd,:);
 testData=T(testInd,:);
 %%
 
-net=vgg19;
+net=alexnet;
 net.Layers
-tempdir='C:\Users\fodrasz\Documents\Pylon\MATLAB';
                       
 %%
 % Options for step 1.
@@ -53,10 +52,10 @@ rng(0);
 
 % Train Faster R-CNN detector. Select a BoxPyramidScale of 1.2 to allow
 % for finer resolution for multiscale object detection.
-detector = trainFasterRCNNObjectDetector(trainingData, layers, options, ...
-    'NegativeOverlapRange', [0 0.25], ...
-    'PositiveOverlapRange', [0.75 1], ...
+detector = trainFasterRCNNObjectDetector(trainingData, net, options, ...
+    'NegativeOverlapRange', [0 0.3], ...
+    'PositiveOverlapRange', [0.7 1], ...
     'SmallestImageDimension',600,...
-    'BoxPyramidScale', 1.2);
+    'BoxPyramidScale', 1.25);
 
 

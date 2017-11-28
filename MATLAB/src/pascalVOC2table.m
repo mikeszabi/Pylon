@@ -10,6 +10,7 @@ for i=1:length(ann_xmls)
     jpeg_file{i}=['c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_total\',strrep(ann_xml.name,'xml','jpg')];
     % ToDo: check if file exist
     [s] = xml2struct([ann_xml.folder,'\',ann_xml.name]);
+    obj={};
     if isfield(s.annotation,'object')
         if length(s.annotation.object)==1
             obj{1}=s.annotation.object;

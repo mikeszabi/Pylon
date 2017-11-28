@@ -1,4 +1,8 @@
-i_obj=10
+i_obj=300;
+
+% [I_out]=load_one_image(T.imageFileName{i_obj},200);
+% inf=getexif(T.imageFileName{i_obj});
+% inf=imfinfo(T.imageFileName{i_obj})
 
 I = imread(T.imageFileName{i_obj});
 
@@ -18,8 +22,3 @@ I_small = insertShape(I_small, 'Rectangle', T.metalpylon{i_obj}*scale,'color','b
 %I_small = insertObjectAnnotation(I_small, 'rectangle', bboxes, scores);
 figure
 imshow(I_small)
-
-figure
-imshow(I)
-
-info = imfinfo(T.imageFileName{i_obj})
