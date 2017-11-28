@@ -1,4 +1,4 @@
-i_obj=300
+i_obj=10
 
 I = imread(T.imageFileName{i_obj});
 
@@ -21,3 +21,5 @@ imshow(I_small)
 
 figure
 imshow(I)
+
+info = imfinfo(T.imageFileName{i_obj})

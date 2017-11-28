@@ -7,7 +7,7 @@ i_obj=0;
 jpeg_file=cell(length(ann_xmls),1);
 for i=1:length(ann_xmls)
     ann_xml=ann_xmls(i);
-    jpeg_file{i}=['c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_total_output\JPEGImages\',strrep(ann_xml.name,'xml','jpg')];
+    jpeg_file{i}=['c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_total\',strrep(ann_xml.name,'xml','jpg')];
     % ToDo: check if file exist
     [s] = xml2struct([ann_xml.folder,'\',ann_xml.name]);
     if isfield(s.annotation,'object')
