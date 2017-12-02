@@ -1,4 +1,6 @@
-i_obj=10;
+load(detector_file)
+
+i_obj=20;
 
 % [I_out]=load_one_image(T.imageFileName{i_obj},200);
 % inf=getexif(T.imageFileName{i_obj});
@@ -7,7 +9,7 @@ i_obj=10;
 I = imread(testData.imageFileName{i_obj});
 
 [h,w,d]=size(I);
-scale=1000/min(h,w);
+scale=640/min(h,w);
 
 I_small=imresize(I,scale);
 

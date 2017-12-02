@@ -1,6 +1,9 @@
-load('C:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_detector.mat')
+load(detector_file);
 
 %https://uk.mathworks.com/help/vision/examples/object-detection-using-faster-r-cnn-deep-learning.html
+gt_results=table();
+scaled_testData=testData;
+
 resultsStruct = struct([]);
 for i = 1:height(testData)
 
@@ -20,19 +23,20 @@ for i = 1:height(testData)
     resultsStruct(i).Boxes = bboxes;
     resultsStruct(i).Scores = scores;
     resultsStruct(i).Labels = labels;
+    scaled_testData(i,2:end).Variables=cellfun(@(x) x*scale,scaled_testData(i,2:end).Variables,'un',0);
 end
 
 % Convert the results into a table.
 results = struct2table(resultsStruct);
 
 % Extract expected bounding box locations from test data.
-expectedResults = testData(:, 2:end);
+expectedResults = scaled_testData(:, 2:end);
 
 % Evaluate the object detector using Average Precision metric.
 [ap, recall, precision] = evaluateDetectionPrecision(results, expectedResults);
 
 figure
-plot(recall{3}, precision{3})
+plot(recall{2}, precision{2})
 xlabel('Recall')
 ylabel('Precision')
 grid on
