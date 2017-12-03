@@ -1,8 +1,7 @@
 load(detector_file);
 
 %https://uk.mathworks.com/help/vision/examples/object-detection-using-faster-r-cnn-deep-learning.html
-gt_results=table();
-scaled_testData=testData;
+%scaled_testData=testData;
 
 resultsStruct = struct([]);
 for i = 1:height(testData)
@@ -19,18 +18,19 @@ for i = 1:height(testData)
     [bboxes, scores, labels] = detect(detector, I_small);
     toc
     
+    bboxes=bboxes/scale;
     % Collect the results.
     resultsStruct(i).Boxes = bboxes;
     resultsStruct(i).Scores = scores;
     resultsStruct(i).Labels = labels;
-    scaled_testData(i,2:end).Variables=cellfun(@(x) x*scale,scaled_testData(i,2:end).Variables,'un',0);
+    %scaled_testData(i,2:end).Variables=cellfun(@(x) x*scale,scaled_testData(i,2:end).Variables,'un',0);
 end
 
 % Convert the results into a table.
 results = struct2table(resultsStruct);
 
 % Extract expected bounding box locations from test data.
-expectedResults = scaled_testData(:, 2:end);
+expectedResults = testData(:, 2:end);
 
 % Evaluate the object detector using Average Precision metric.
 [ap, recall, precision] = evaluateDetectionPrecision(results, expectedResults);
