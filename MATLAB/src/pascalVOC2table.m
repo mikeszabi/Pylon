@@ -1,13 +1,14 @@
-ann_xml_folder='c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_total_output\Annotations\';
+ann_xml_folder='c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_output\Annotations\';
 ann_xmls=dir([ann_xml_folder,'*.xml']);
 classes={'concretepylon','metalpylon','woodpylon'};
+merged_classes={'pylon'}
 
 T=table();
 i_obj=0;
 jpeg_file=cell(length(ann_xmls),1);
 for i=1:length(ann_xmls)
     ann_xml=ann_xmls(i);
-    jpeg_file{i}=['c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_total\',strrep(ann_xml.name,'xml','jpg')];
+    jpeg_file{i}=['c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon\',strrep(ann_xml.name,'xml','jpg')];
     % ToDo: check if file exist
     [s] = xml2struct([ann_xml.folder,'\',ann_xml.name]);
     obj={};
@@ -25,7 +26,8 @@ for i=1:length(ann_xmls)
             ymin=str2double(obj{j}.bndbox.ymin.Text);
             xmax=str2double(obj{j}.bndbox.xmax.Text);
             ymax=str2double(obj{j}.bndbox.ymax.Text);
-            ind=strcmp(classes,name.Text);
+            %ind=strcmp(classes,name.Text);
+            ind=1;
             %bbox=[xmin,ymin,xmax-xmin,ymax-ymin]
             bboxes=cell(1,length(ind));
             bboxes{1,ind}={[xmin,ymin,xmax-xmin,ymax-ymin]};
@@ -34,5 +36,5 @@ for i=1:length(ann_xmls)
     end
 end
 
-T.Properties.VariableNames = [{'imageFileName'},classes];
+T.Properties.VariableNames = [{'imageFileName'},merged_classes];
 

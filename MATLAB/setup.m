@@ -1,6 +1,7 @@
 projectDir='C:\Users\fodrasz\Documents\Pylon\MATLAB\';
 workDir=projectDir;
 tempdir='D:\tmp\';
+mkdir(tempdir);
 %%
 
 % adding source directory
@@ -11,7 +12,7 @@ addpath([projectDir,'src_tools']);
 addpath_recurse([projectDir,'3rd_party']);
 
 cur_detector_file='C:\Users\fodrasz\Documents\Pylon\MATLAB\detectors\pylon_detector.mat';
-detector_file='C:\Users\fodrasz\Documents\Pylon\MATLAB\detectors\pylon_detector_20171201.mat';
+detector_file='C:\Users\fodrasz\Documents\Pylon\MATLAB\detectors\pylon_detector_20171211.mat';
 
 %%
 showFig=true;
