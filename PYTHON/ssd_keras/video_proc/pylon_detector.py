@@ -41,8 +41,7 @@ img_height = 576 # Height of the input images
 img_width = 576 # Width of the input images
 img_channels = 3 # Number of color channels of the input images
 n_classes = len(merged_classes) # Number of classes including the background class
-#min_scale = 0.32 # The scaling factor for the smallest anchor boxes
-#max_scale = 0.96 # The scaling factor for the largest anchor boxes
+
 
 ### To be optimized
 scales = [0.3, 0.5, 0.7, 0.8, 0.9] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
@@ -56,13 +55,7 @@ limit_boxes = False # Whether or not you want to limit the anchor boxes to lie e
 variances = [0.5, 0.5, 0.5, 0.5] # The variances by which the encoded target coordinates are scaled as in the original implementation
 coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
 normalize_coords = False
-# These are the spatial dimensions (height, width) of the predictor layers. The `SSDBoxEncoder` constructor needs this information.
-#predictor_sizes = [[58, 35], 
-#                   [28, 16],
-#                   [13,  7],
-#                   [ 5,  2]]
 
-# 4: Set the batch size.
 
 """
 CREATE MODEL
@@ -85,7 +78,7 @@ model, predictor_sizes = build_model(image_size=(img_height, img_width, img_chan
                                  normalize_coords=normalize_coords)
 
 
-model.load_weights(r'./models/ssd7_pylon_weights.h5')
+model.load_weights(r'./models/ssd7_pylon_weights_benchmark.h5')
 
 """
 LOAD AND PROCESS IMAGES
