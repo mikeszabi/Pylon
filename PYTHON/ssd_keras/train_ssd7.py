@@ -104,7 +104,7 @@ ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
                                 two_boxes_for_ar1=two_boxes_for_ar1,
                                 limit_boxes=limit_boxes,
                                 variances=variances,
-                                pos_iou_threshold=0.6, ### To be optimized
+                                pos_iou_threshold=0.7, ### To be optimized
                                 neg_iou_threshold=0.2, ### To be optimized
                                 coords=coords,
                                 normalize_coords=normalize_coords)
@@ -177,10 +177,10 @@ history = model.fit_generator(generator = train_generator,
                                            LearningRateScheduler(lr_schedule),
                                            EarlyStopping(monitor='val_loss',
                                            min_delta=0.001,
-                                           patience=5),
+                                           patience=10),
                                            ReduceLROnPlateau(monitor='val_loss',
                                                              factor=0.5,
-                                                             patience=5,
+                                                             patience=10,
                                                              epsilon=0.001,
                                                              cooldown=0)],
                               validation_data = val_generator,
