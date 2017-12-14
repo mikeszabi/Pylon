@@ -11,7 +11,7 @@ import sys
 import imp
 
 #imp.reload(sys.modules['ssd_batch_generator'])
-from ssd_batch_generator import BatchGenerator
+from src_ssd.ssd_batch_generator import BatchGenerator
 
 
 train_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymin', 'ymax'])
@@ -24,7 +24,7 @@ val_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymi
 
 # The directories that contain the images.
 
-base_data_path=r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_output'
+base_data_path=r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon1152_output'
 
 PYLON_images_path           = os.path.join(base_data_path,'JPEGImages')
 # The directories that contain the annotations.

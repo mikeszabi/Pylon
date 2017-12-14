@@ -21,8 +21,8 @@ import numpy as np
 from keras.models import Model
 from keras.layers import Input, Lambda, Activation, Conv2D, MaxPooling2D, Reshape, Concatenate
 
-from keras_layer_AnchorBoxes import AnchorBoxes
-from keras_layer_L2Normalization import L2Normalization
+from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
+from src_ssd.keras_layer_L2Normalization import L2Normalization
 
 def ssd_300(image_size,
             n_classes,

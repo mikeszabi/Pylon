@@ -15,6 +15,8 @@ from matplotlib import pyplot as plt
 
 # 1: Set the generator
 
+img_height=576
+img_width=576
 
 
 predict_generator = val_dataset.generate(batch_size=1,
@@ -25,13 +27,13 @@ predict_generator = val_dataset.generate(batch_size=1,
                                          translate=False,
                                          scale=False,
                                          max_crop_and_resize=(576, 576, 1, 3),
-                                         full_crop_and_resize=(576, 576, 1, 3, 0.5),
+                                         full_crop_and_resize=(576, 576, 1, 3, 1),
                                          random_crop=False,
                                          crop=False,
                                          resize=False,
                                          gray=False,
                                          limit_boxes=True,
-                                         include_thresh=0.4,
+                                         include_thresh=0.8,
                                          diagnostics=False)
 
 # 2: Generate samples
@@ -53,12 +55,12 @@ y_pred = model.predict(X)
 # 4: Decode the raw prediction `y_pred`
 y_pred_decoded = decode_y2(y_pred,
                            confidence_thresh=0.5,
-                           iou_threshold=0.4,
+                           iou_threshold=0.01,
                            top_k='all',
                            input_coords='centroids',
                            normalize_coords=normalize_coords,
-                           img_height=576,
-                           img_width=576)
+                           img_height=img_height,
+                           img_width=img_width)
 elapsed = time.time() - t
 print(elapsed)
 
@@ -78,7 +80,7 @@ for box in y_true[i]:
     current_axis.text(box[1], box[3], label, size='x-large', color='white', bbox={'facecolor':'green', 'alpha':1.0})
 
 for box in y_pred_decoded[i]:
-    label = '{}: {:.2f}'.format(classes[int(box[0])], box[1])
+    label = '{}: {:.2f}'.format(merged_classes[int(box[0])], box[1])
     current_axis.add_patch(plt.Rectangle((box[2], box[4]), box[3]-box[2], box[5]-box[4], color='blue', fill=False, linewidth=2))  
     current_axis.text(box[2], box[4], label, size='x-large', color='white', bbox={'facecolor':'blue', 'alpha':1.0})
 

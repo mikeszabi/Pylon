@@ -13,23 +13,32 @@ from math import ceil
 
 
 #from keras_ssd300 import ssd_300
-from keras_ssd7 import build_model
+from src_ssd.keras_ssd7 import build_model
 
-from keras_ssd_loss import SSDLoss
-from keras_layer_AnchorBoxes import AnchorBoxes
-from keras_layer_L2Normalization import L2Normalization
-from ssd_box_encode_decode_utils import SSDBoxEncoder, decode_y, decode_y2
+from src_ssd.keras_ssd_loss import SSDLoss
+from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
+from src_ssd.keras_layer_L2Normalization import L2Normalization
+from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder, decode_y, decode_y2
 
+# CALL prepare_data
+
+### To be optimized
 img_height = 576 # Height of the input images
 img_width = 576 # Width of the input images
 img_channels = 3 # Number of color channels of the input images
 n_classes = len(merged_classes) # Number of classes including the background class
 #min_scale = 0.32 # The scaling factor for the smallest anchor boxes
 #max_scale = 0.96 # The scaling factor for the largest anchor boxes
-scales = [0.2, 0.35, 0.5, 0.75, 0.9] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+
+### To be optimized
+scales = [0.3, 0.5, 0.7, 0.8, 0.9] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+
+### To be optimized
 aspect_ratios = [0.15, 0.25, 0.35, 0.45]
 two_boxes_for_ar1 = False
 limit_boxes = False # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
+
+### ???
 variances = [0.5, 0.5, 0.5, 0.5] # The variances by which the encoded target coordinates are scaled as in the original implementation
 coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
 normalize_coords = False
@@ -95,8 +104,8 @@ ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
                                 two_boxes_for_ar1=two_boxes_for_ar1,
                                 limit_boxes=limit_boxes,
                                 variances=variances,
-                                pos_iou_threshold=0.5,
-                                neg_iou_threshold=0.2,
+                                pos_iou_threshold=0.6, ### To be optimized
+                                neg_iou_threshold=0.2, ### To be optimized
                                 coords=coords,
                                 normalize_coords=normalize_coords)
 
@@ -112,13 +121,13 @@ train_generator = train_dataset.generate(batch_size=batch_size,
                                          translate=False,
                                          scale=False,
                                          max_crop_and_resize=(img_height, img_width, 1, 3), # This one is important because the Pascal VOC images vary in size
-                                         full_crop_and_resize=(img_height, img_width, 1, 3,0.5), # This one is important because the Pascal VOC images vary in size
+                                         full_crop_and_resize=(img_height, img_width, 1, 3,1), # This one is important because the Pascal VOC images vary in size
                                          random_crop=False,
                                          crop=False,
                                          resize=False,
                                          gray=False,
                                          limit_boxes=True, # While the anchor boxes are not being clipped, the ground truth boxes should be
-                                         include_thresh=0.4,
+                                         include_thresh=0.8,
                                          diagnostics=False)
 
 val_generator = val_dataset.generate(batch_size=batch_size,
@@ -136,7 +145,7 @@ val_generator = val_dataset.generate(batch_size=batch_size,
                                      resize=False,
                                      gray=False,
                                      limit_boxes=True,
-                                     include_thresh=0.4,
+                                     include_thresh=0.8,
                                      diagnostics=False)
 
 

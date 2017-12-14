@@ -11,12 +11,12 @@ import file_helper
 import cv2
 
 
-new_height=576
+new_height=1152
 
-ann_name='pylon_unprocessed'
-new_ann_name='pylon'
+ann_name='A1'
+new_ann_name='pylon1152'
 
-ann_image_path=os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon',ann_name)
+ann_image_path=os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_orig',ann_name)
 #ann_json = os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon',ann_name+'.json')
 
 new_ann_image_path=os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon',new_ann_name)

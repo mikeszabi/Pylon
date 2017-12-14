@@ -21,7 +21,7 @@ import numpy as np
 from keras.models import Model
 from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization, ELU, Reshape, Concatenate, Activation
 
-from keras_layer_AnchorBoxes import AnchorBoxes
+from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
 
 def build_model(image_size,
                 n_classes,
