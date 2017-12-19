@@ -11,8 +11,8 @@ print(cv2.__version__)
 
 import time
 
-img_height = 576 # Height of the input images
-img_width = 576 # Width of the input images
+img_height = 300 # Height of the input images
+img_width = 300 # Width of the input images
 new_height=img_height
 
 """
@@ -21,27 +21,27 @@ read
 
 video_stream=r'C:\Users\fodrasz\OneDrive\Annotation\Videos\VB_short.mp4'
 
-cap = cv2.VideoCapture(video_stream)
-cap.get(cv2.CAP_PROP_FRAME_COUNT)
-fps=cap.get(cv2.CAP_PROP_FPS)
-
-#while(cap.isOpened()):
-#    ret, frame = cap.read()
+#cap = cv2.VideoCapture(video_stream)
+#cap.get(cv2.CAP_PROP_FRAME_COUNT)
+#fps=cap.get(cv2.CAP_PROP_FPS)
 #
-#    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+##while(cap.isOpened()):
+##    ret, frame = cap.read()
+##
+##    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+##
+##cv2.imshow('frame',gray)
+##if cv2.waitKey(1) & 0xFF == ord('q'):
+##    break
 #
-    cv2.imshow('frame',gray)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+#cap.release()
+#cv2.destroyAllWindows()
 
 """
 write
 """
 cap = cv2.VideoCapture(video_stream)
-
+fps=cap.get(cv2.CAP_PROP_FPS)
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('output.avi',fourcc, fps, (img_height,img_width))
@@ -78,9 +78,9 @@ while(cap.isOpened()):
         y_pred = model.predict(im_square)
         # 4: Decode the raw prediction `y_pred`
         y_pred_decoded = decode_y2(y_pred,
-                                   confidence_thresh=0.8,
+                                   confidence_thresh=0.50,
                                    iou_threshold=0.01,
-                                   top_k=1,
+                                   top_k='all',
                                    input_coords='centroids',
                                    normalize_coords=False,
                                    img_height=img_height,
@@ -88,6 +88,7 @@ while(cap.isOpened()):
         
         print(time.time()-t)
         
+        frame_out=im_square[0,:,:,:].copy()
         
         for box in y_pred_decoded[0]:
             label = '{}: {:.2f}'.format(merged_classes[int(box[0])], box[1])
@@ -96,12 +97,12 @@ while(cap.isOpened()):
             endX=int(box[3])
             endY=int(box[5])
             
-            frame_out=cv2.rectangle(im_square[0,:,:,:], (startX, startY), (endX, endY),3, 5)
+            frame_out=cv2.rectangle(frame_out, (startX, startY), (endX, endY),(0,0,255), 3)
 
 #            cv2.imshow('frame',frame_out)
 #            cv2.waitKey(0)
         # write the flipped frame
-        out.write(frame)
+        out.write(frame_out)
 
         cv2.imshow('frame',frame_out)
         if cv2.waitKey(1) & 0xFF == ord('q'):

@@ -15,8 +15,8 @@ from matplotlib import pyplot as plt
 
 # 1: Set the generator
 
-img_height=576
-img_width=576
+img_height=300
+img_width=300
 
 
 predict_generator = val_dataset.generate(batch_size=1,
@@ -26,8 +26,8 @@ predict_generator = val_dataset.generate(batch_size=1,
                                          flip=False,
                                          translate=False,
                                          scale=False,
-                                         max_crop_and_resize=(576, 576, 1, 3),
-                                         full_crop_and_resize=(576, 576, 1, 3, 1),
+                                         max_crop_and_resize=(img_height, img_width, 1, 3),
+                                         full_crop_and_resize=(img_height, img_width, 1, 3, 1),
                                          random_crop=False,
                                          crop=False,
                                          resize=False,

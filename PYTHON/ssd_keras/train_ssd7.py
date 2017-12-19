@@ -23,15 +23,15 @@ from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder, decode_y, decode_
 # CALL prepare_data
 
 ### To be optimized
-img_height = 576 # Height of the input images
-img_width = 576 # Width of the input images
+img_height = 300 # Height of the input images
+img_width = 300 # Width of the input images
 img_channels = 3 # Number of color channels of the input images
 n_classes = len(merged_classes) # Number of classes including the background class
 #min_scale = 0.32 # The scaling factor for the smallest anchor boxes
 #max_scale = 0.96 # The scaling factor for the largest anchor boxes
 
 ### To be optimized
-scales = [0.3, 0.5, 0.7, 0.8, 0.9] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+scales = [0.2, 0.4, 0.5, 0.6, 0.7] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
 
 ### To be optimized
 aspect_ratios = [0.15, 0.25, 0.35, 0.45]

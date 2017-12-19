@@ -223,6 +223,8 @@ def ssd_300(image_size,
     conv5_3 = Conv2D(512, (3, 3), activation='relu', padding='same', name='conv5_3')(conv5_2)
     pool5 = MaxPooling2D(pool_size=(3, 3), strides=(1, 1), padding='same', name='pool5')(conv5_3)
 
+    # Two layers below uses weights from pretrained networks
+
     fc6 = Conv2D(1024, (3, 3), dilation_rate=(6, 6), activation='relu', padding='same', name='fc6')(pool5)
 
     fc7 = Conv2D(1024, (1, 1), activation='relu', padding='same', name='fc7')(fc6)

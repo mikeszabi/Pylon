@@ -43,8 +43,8 @@ merge_dict = {'concretepylon':'pylon','metalpylon':'pylon','woodpylon':'pylon'}
 merged_classes=['background','pylon']
 
 # fix size: 576x576
-img_height = 576 # Height of the input images
-img_width = 576 # Width of the input images
+img_height = 300 # Height of the input images
+img_width = 300 # Width of the input images
 
 # SET THE PROPER PATH of images to be processed
 base_data_path=r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon1152_output'
