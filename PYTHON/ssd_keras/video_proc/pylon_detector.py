@@ -10,7 +10,7 @@ import os
 print(cv2.__version__)
 from src_ssd.keras_ssd7 import build_model
 from keras import backend as K
-from keras.models import load_model
+from keras.models import load_model, model_from_json
 from src_ssd.keras_ssd_loss import SSDLoss
 from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
 from src_ssd.keras_layer_L2Normalization import L2Normalization
@@ -19,8 +19,17 @@ from PIL import Image
 from src_helper.file_helper import imagelist_in_depth
 from matplotlib import pyplot as plt
 
-#Doesn't work...
-#model=load_model(r'./models/ssd7_pylon.h5')
+
+"""
+# LOADING models with custom objects: AnchorBoxes and ssd_loss
+"""
+ssd_loss = SSDLoss(neg_pos_ratio=1, n_neg_min=0, alpha=1.0)
+model=load_model(r'./models/ssd7_pylon.h5',custom_objects={'AnchorBoxes':AnchorBoxes,'compute_loss': ssd_loss.compute_loss})
+
+# If model is saved in json format
+#model = model_from_json(loaded_model_json)
+#model.load_weights(r'./models/ssd7_pylon_weights_benchmark.h5')
+
 
 """
 SET PARAMETERS
@@ -33,62 +42,18 @@ classes = ['background',
 merge_dict = {'concretepylon':'pylon','metalpylon':'pylon','woodpylon':'pylon'}
 merged_classes=['background','pylon']
 
-"""
-"""
-
-### To be optimized
+# fix size: 576x576
 img_height = 576 # Height of the input images
 img_width = 576 # Width of the input images
-img_channels = 3 # Number of color channels of the input images
-n_classes = len(merged_classes) # Number of classes including the background class
 
-
-### To be optimized
-scales = [0.3, 0.5, 0.7, 0.8, 0.9] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
-
-### To be optimized
-aspect_ratios = [0.15, 0.25, 0.35, 0.45]
-two_boxes_for_ar1 = False
-limit_boxes = False # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
-
-### ???
-variances = [0.5, 0.5, 0.5, 0.5] # The variances by which the encoded target coordinates are scaled as in the original implementation
-coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
-normalize_coords = False
-
-
-"""
-CREATE MODEL
-"""
-
-
-K.clear_session() # Clear previous models from memory.
-# The output `predictor_sizes` is needed below to set up `SSDBoxEncoder`
-model, predictor_sizes = build_model(image_size=(img_height, img_width, img_channels),
-                                 n_classes=n_classes,
-                                 min_scale=None, # You could pass a min scale and max scale instead of the `scales` list, but we're not doing that here
-                                 max_scale=None,
-                                 scales=scales,
-                                 aspect_ratios_global=aspect_ratios,
-                                 aspect_ratios_per_layer=None,
-                                 two_boxes_for_ar1=two_boxes_for_ar1,
-                                 limit_boxes=limit_boxes,
-                                 variances=variances,
-                                 coords=coords,
-                                 normalize_coords=normalize_coords)
-
-
-model.load_weights(r'./models/ssd7_pylon_weights_benchmark.h5')
-
-"""
-LOAD AND PROCESS IMAGES
-"""
-# fix size: 576x576
-new_height=img_height
-
-# SET THE PROPER PATH
+# SET THE PROPER PATH of images to be processed
 base_data_path=r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon1152_output'
 PYLON_images_path           = os.path.join(base_data_path,'JPEGImages')
+
+"""
+LOAD IMAGES
+"""
+
 
 image_list=imagelist_in_depth(PYLON_images_path,level=1)
 
@@ -96,14 +61,14 @@ image_list=imagelist_in_depth(PYLON_images_path,level=1)
 EVALUATE
 """
 
-i=1
+i=2
 image_file=image_list[i]
 
 image = cv2.imread(image_file)
 #    cv2.imshow("original", image)
 #    cv2.waitKey(0)
-scale = new_height / image.shape[0]
-dim = (int(image.shape[1] * scale),new_height)
+scale = img_height / image.shape[0]
+dim = (int(image.shape[1] * scale),img_height)
  
 # perform the actual resizing of the image and show it
 im_resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
@@ -130,11 +95,11 @@ y_pred = model.predict(im_square)
 y_pred_decoded = decode_y2(y_pred,
                            confidence_thresh=0.5,
                            iou_threshold=0.01,
-                           top_k=1,
+                           top_k='all',
                            input_coords='centroids',
                            normalize_coords=False,
-                           img_height=1152,
-                           img_width=1152)
+                           img_height=576,
+                           img_width=576)
 
 print(time.time()-t)
 
