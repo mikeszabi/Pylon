@@ -50,7 +50,7 @@ normalize_coords = False
 
 # 4: Set the batch size.
 
-batch_size = 16 # Change the batch size if you like, or if you run into memory issues with your GPU.
+batch_size = 8 # Change the batch size if you like, or if you run into memory issues with your GPU.
 
 """
 CREATE MODEL

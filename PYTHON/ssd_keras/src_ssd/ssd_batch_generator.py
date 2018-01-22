@@ -256,51 +256,52 @@ class BatchGenerator:
 
             # Parse the labels for each image ID from its respective XML file
             for image_id in image_ids:
-                # Open the XML file for this image
-                with open(os.path.join(annotations_path, image_id+'.xml')) as f:
-                    soup = BeautifulSoup(f, 'xml')
-
-                folder = soup.folder.text # In case we want to return the folder in addition to the image file name. Relevant for determining which dataset an image belongs to.
-                full_filename = soup.path.text
-
-                boxes = [] # We'll store all boxes for this image here
-                objects = soup.find_all('object') # Get a list of all objects in this image
-
-                if len(objects)>0:
-                    self.filenames.append(full_filename)
-                    # Parse the data for each object
-                    for obj in objects:
-                        class_name = merge_dict[obj.find('name').text]
-                        class_id = self.classes.index(class_name)
-                        # Check if this class is supposed to be included in the dataset
-                        if (not self.include_classes == 'all') and (not class_id in self.include_classes): continue
-    #                    pose = obj.pose.text
-    #                    truncated = int(obj.truncated.text)
-    #                    if exclude_truncated and (truncated ==1): continue
-    #                    difficult = int(obj.difficult.text)
-    #                    if exclude_difficult and (difficult == 1): continue
-                        xmin = int(obj.bndbox.xmin.text)
-                        ymin = int(obj.bndbox.ymin.text)
-                        xmax = int(obj.bndbox.xmax.text)
-                        ymax = int(obj.bndbox.ymax.text)
-                        item_dict = {'folder': folder,
-                                     'image_name': full_filename,
-                                     'image_id': image_id,
-                                     'class_name': class_name,
-                                     'class_id': class_id,
-    #                                 'pose': pose,
-    #                                 'truncated': truncated,
-    #                                 'difficult': difficult,
-                                     'xmin': xmin,
-                                     'ymin': ymin,
-                                     'xmax': xmax,
-                                     'ymax': ymax}
-                        box = []
-                        for item in self.box_output_format:
-                            box.append(item_dict[item])
-                        boxes.append(box)
-
-                    self.labels.append(boxes)
+                if image_id:
+                    # Open the XML file for this image
+                    with open(os.path.join(annotations_path, image_id+'.xml')) as f:
+                        soup = BeautifulSoup(f, 'xml')
+    
+                    folder = soup.folder.text # In case we want to return the folder in addition to the image file name. Relevant for determining which dataset an image belongs to.
+                    full_filename = soup.path.text
+    
+                    boxes = [] # We'll store all boxes for this image here
+                    objects = soup.find_all('object') # Get a list of all objects in this image
+    
+                    if len(objects)>0:
+                        self.filenames.append(full_filename)
+                        # Parse the data for each object
+                        for obj in objects:
+                            class_name = merge_dict[obj.find('name').text]
+                            class_id = self.classes.index(class_name)
+                            # Check if this class is supposed to be included in the dataset
+                            if (not self.include_classes == 'all') and (not class_id in self.include_classes): continue
+        #                    pose = obj.pose.text
+        #                    truncated = int(obj.truncated.text)
+        #                    if exclude_truncated and (truncated ==1): continue
+        #                    difficult = int(obj.difficult.text)
+        #                    if exclude_difficult and (difficult == 1): continue
+                            xmin = int(obj.bndbox.xmin.text)
+                            ymin = int(obj.bndbox.ymin.text)
+                            xmax = int(obj.bndbox.xmax.text)
+                            ymax = int(obj.bndbox.ymax.text)
+                            item_dict = {'folder': folder,
+                                         'image_name': full_filename,
+                                         'image_id': image_id,
+                                         'class_name': class_name,
+                                         'class_id': class_id,
+        #                                 'pose': pose,
+        #                                 'truncated': truncated,
+        #                                 'difficult': difficult,
+                                         'xmin': xmin,
+                                         'ymin': ymin,
+                                         'xmax': xmax,
+                                         'ymax': ymax}
+                            box = []
+                            for item in self.box_output_format:
+                                box.append(item_dict[item])
+                            boxes.append(box)
+    
+                        self.labels.append(boxes)
 
         if ret:
             return self.filenames, self.labels

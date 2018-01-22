@@ -23,8 +23,8 @@ val_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymi
 # TODO: Set the paths to the datasets here.
 
 # The directories that contain the images.
-
-base_data_path=r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon1152_output'
+base_dir=r'E:\\'
+base_data_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon','pylon1152_output')
 
 PYLON_images_path           = os.path.join(base_data_path,'JPEGImages')
 # The directories that contain the annotations.
