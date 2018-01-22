@@ -7,19 +7,21 @@ This is a temporary script file.
 
 import os
 #import json
-import file_helper
+from src_helper import file_helper
 import cv2
 
 
 new_height=1152
 
-ann_name='A1'
+ann_name='B1'
 new_ann_name='pylon1152'
 
-ann_image_path=os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon_orig',ann_name)
+base_dir=r'E:'
+
+ann_image_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon','pylon_orig',ann_name)
 #ann_json = os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon',ann_name+'.json')
 
-new_ann_image_path=os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon',new_ann_name)
+new_ann_image_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon',new_ann_name)
 #new_ann_json = os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon',new_ann_name+'.json')
 
 #ann= json.load(open(ann_json))
@@ -47,7 +49,7 @@ for i,image_file in enumerate(image_list_indir):
     # perform the actual resizing of the image and show it
     resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
     
-    resized_image_file=os.path.join(new_ann_image_path,os.path.basename(image_file))
+    resized_image_file=os.path.join(new_ann_image_path,ann_name+'_'+os.path.basename(image_file))
     cv2.imwrite(resized_image_file,resized)
 #    cv2.imshow("resized", resized)
 #    cv2.waitKey(0)
