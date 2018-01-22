@@ -31,15 +31,15 @@ n_classes = len(merged_classes) # Number of classes including the background cla
 #max_scale = 0.96 # The scaling factor for the largest anchor boxes
 
 ### To be optimized
-scales = [0.2, 0.4, 0.5, 0.6, 0.7] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+scales = [0.4, 0.5, 0.6, 0.7, 0.8] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
 
 ### To be optimized
-aspect_ratios = [0.15, 0.25, 0.35, 0.45]
+aspect_ratios = [0.2, 0.25, 0.35, 0.4]
 two_boxes_for_ar1 = False
 limit_boxes = False # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
 
 ### ???
-variances = [0.5, 0.5, 0.5, 0.5] # The variances by which the encoded target coordinates are scaled as in the original implementation
+variances = [1, 1, 1, 1] # The variances by which the encoded target coordinates are scaled as in the original implementation
 coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
 normalize_coords = False
 # These are the spatial dimensions (height, width) of the predictor layers. The `SSDBoxEncoder` constructor needs this information.
@@ -105,7 +105,7 @@ ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
                                 limit_boxes=limit_boxes,
                                 variances=variances,
                                 pos_iou_threshold=0.7, ### To be optimized
-                                neg_iou_threshold=0.2, ### To be optimized
+                                neg_iou_threshold=0.3, ### To be optimized
                                 coords=coords,
                                 normalize_coords=normalize_coords)
 
@@ -127,7 +127,7 @@ train_generator = train_dataset.generate(batch_size=batch_size,
                                          resize=False,
                                          gray=False,
                                          limit_boxes=True, # While the anchor boxes are not being clipped, the ground truth boxes should be
-                                         include_thresh=0.8,
+                                         include_thresh=0.9,
                                          diagnostics=False)
 
 val_generator = val_dataset.generate(batch_size=batch_size,
@@ -145,7 +145,7 @@ val_generator = val_dataset.generate(batch_size=batch_size,
                                      resize=False,
                                      gray=False,
                                      limit_boxes=True,
-                                     include_thresh=0.8,
+                                     include_thresh=0.9,
                                      diagnostics=False)
 
 
