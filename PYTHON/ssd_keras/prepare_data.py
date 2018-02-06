@@ -24,6 +24,7 @@ val_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymi
 
 # The directories that contain the images.
 base_dir=r'E:\\'
+base_dir=r'C:\\Users\\fodrasz\\'
 base_data_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon','pylon1152_output')
 
 PYLON_images_path           = os.path.join(base_data_path,'JPEGImages')

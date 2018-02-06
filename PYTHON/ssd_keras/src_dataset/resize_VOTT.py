@@ -13,16 +13,15 @@ import cv2
 
 new_height=1152
 
-ann_name='B1'
+ann_name='E1'
 new_ann_name='pylon1152'
 
 base_dir=r'E:'
+base_dir=r'C:\Users\fodrasz'
 
 ann_image_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon','pylon_orig',ann_name)
-#ann_json = os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon',ann_name+'.json')
 
 new_ann_image_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon',new_ann_name)
-#new_ann_json = os.path.join(r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon',new_ann_name+'.json')
 
 #ann= json.load(open(ann_json))
 #

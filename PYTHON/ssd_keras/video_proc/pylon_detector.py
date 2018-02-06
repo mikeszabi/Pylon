@@ -20,6 +20,9 @@ from src_helper.file_helper import imagelist_in_depth
 from matplotlib import pyplot as plt
 
 
+img_channels = 3 # Number of color channels of the input images
+
+
 """
 # LOADING models with custom objects: AnchorBoxes and ssd_loss
 """
@@ -43,8 +46,8 @@ merge_dict = {'concretepylon':'pylon','metalpylon':'pylon','woodpylon':'pylon'}
 merged_classes=['background','pylon']
 
 # fix size: 576x576
-img_height = 300 # Height of the input images
-img_width = 300 # Width of the input images
+img_height = 272 # Height of the input images
+img_width = 272 # Width of the input images
 
 # SET THE PROPER PATH of images to be processed
 base_data_path=r'c:\Users\fodrasz\OneDrive\Annotation\IDB_Pylon\pylon1152_output'
@@ -61,10 +64,12 @@ image_list=imagelist_in_depth(PYLON_images_path,level=1)
 EVALUATE
 """
 
-i=2
+i=30
 image_file=image_list[i]
 
 image = cv2.imread(image_file)
+image=cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+
 #    cv2.imshow("original", image)
 #    cv2.waitKey(0)
 scale = img_height / image.shape[0]
@@ -73,7 +78,10 @@ dim = (int(image.shape[1] * scale),img_height)
 # perform the actual resizing of the image and show it
 im_resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
 
-im_square=np.zeros((1,img_height,img_width,3),'uint8')
+if img_channels==1:
+    im_resized=np.expand_dims(im_resized[:,:,2], axis=2)
+    
+im_square=np.zeros((1,img_height,img_width,img_channels),'uint8')
 
 image_aspect_ratio = dim[0] / dim[1]
 
@@ -93,13 +101,13 @@ t=time.time()
 y_pred = model.predict(im_square)
 # 4: Decode the raw prediction `y_pred`
 y_pred_decoded = decode_y2(y_pred,
-                           confidence_thresh=0.5,
-                           iou_threshold=0.01,
+                           confidence_thresh=0.25,
+                           iou_threshold=0.25,
                            top_k='all',
                            input_coords='centroids',
                            normalize_coords=False,
-                           img_height=576,
-                           img_width=576)
+                           img_height=img_height,
+                           img_width=img_width)
 
 print(time.time()-t)
 
@@ -107,7 +115,7 @@ np.set_printoptions(precision=2, suppress=True, linewidth=90)
 print("Predicted boxes:\n")
 print(y_pred_decoded[0])
 plt.figure(figsize=(20,12))
-plt.imshow(im_square[0,:,:,:])
+plt.imshow(np.squeeze(im_square[0,:,:,:]))
 
 current_axis = plt.gca()
 

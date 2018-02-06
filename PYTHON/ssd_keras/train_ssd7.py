@@ -23,18 +23,22 @@ from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder, decode_y, decode_
 # CALL prepare_data
 
 ### To be optimized
-img_height = 300 # Height of the input images
-img_width = 300 # Width of the input images
-img_channels = 3 # Number of color channels of the input images
+img_height = 272 # Height of the input images
+img_width = 272 # Width of the input images
+img_channels = 1 # Number of color channels of the input images
 n_classes = len(merged_classes) # Number of classes including the background class
+if img_channels==1:
+    gray=True
 #min_scale = 0.32 # The scaling factor for the smallest anchor boxes
 #max_scale = 0.96 # The scaling factor for the largest anchor boxes
 
 ### To be optimized
-scales = [0.4, 0.5, 0.6, 0.7, 0.8] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+scales = [0.4, 0.45, 0.5, 0.55, 0.6] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
 
 ### To be optimized
-aspect_ratios = [0.2, 0.25, 0.35, 0.4]
+aspect_ratios = [0.2, 0.25, 0.3, 0.35]
+#w= scale*size*sqrt(aspect_ratio)
+#h=scale*size/sqrt(aspect_ratio)
 two_boxes_for_ar1 = False
 limit_boxes = False # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
 
@@ -125,7 +129,7 @@ train_generator = train_dataset.generate(batch_size=batch_size,
                                          random_crop=False,
                                          crop=False,
                                          resize=False,
-                                         gray=False,
+                                         gray=gray,
                                          limit_boxes=True, # While the anchor boxes are not being clipped, the ground truth boxes should be
                                          include_thresh=0.9,
                                          diagnostics=False)
@@ -143,7 +147,7 @@ val_generator = val_dataset.generate(batch_size=batch_size,
                                      random_crop=False,
                                      crop=False,
                                      resize=False,
-                                     gray=False,
+                                     gray=gray,
                                      limit_boxes=True,
                                      include_thresh=0.9,
                                      diagnostics=False)

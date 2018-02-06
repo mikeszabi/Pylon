@@ -23,18 +23,18 @@ from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder, decode_y, decode_
 # CALL prepare_data
 
 ### To be optimized
-img_height = 576 # Height of the input images
-img_width = 576 # Width of the input images
+img_height = 544 # Height of the input images
+img_width = 544 # Width of the input images
 img_channels = 3 # Number of color channels of the input images
 n_classes = len(merged_classes) # Number of classes including the background class
 #min_scale = 0.32 # The scaling factor for the smallest anchor boxes
 #max_scale = 0.96 # The scaling factor for the largest anchor boxes
 
 ### To be optimized
-scales = [0.15, 0.2, 0.25, 0.3, 0.35, 0.4] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+scales = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
 
 ### To be optimized
-aspect_ratios = [0.15, 0.2, 0.25, 0.35, 0.5]
+aspect_ratios = [0.15, 0.2, 0.25, 0.3, 0.35]
 
 
 # w = scales * np.sqrt(aspect_ratios)
@@ -172,7 +172,7 @@ epochs = 50
 history = model.fit_generator(generator = train_generator,
                               steps_per_epoch = ceil(n_train_samples/batch_size),
                               epochs = epochs,
-                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd7_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
+                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd8_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
                                            monitor='val_loss',
                                            verbose=1,
                                            save_best_only=True,
@@ -195,7 +195,6 @@ history = model.fit_generator(generator = train_generator,
 #       Do the same in the `ModelCheckpoint` callback above.
 model_name = r'./models/ssd7_pylon'
 model.save('{}.h5'.format(model_name))
-model.to_json('{}.json'.format(model_name))
 model.save_weights('{}_weights.h5'.format(model_name))
 
 print()

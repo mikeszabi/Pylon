@@ -18,22 +18,22 @@ from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
 from src_ssd.keras_layer_L2Normalization import L2Normalization
 from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder, decode_y, decode_y2
 
-img_height = 576 # Height of the input images
-img_width = 576 # Width of the input images
+img_height = 272 # Height of the input images
+img_width = 272 # Width of the input images
 img_channels = 3 # Number of color channels of the input images
 n_classes = len(merged_classes) # Number of classes including the background class
 min_scale = 0.32 # The scaling factor for the smallest anchor boxes
 max_scale = 0.96 # The scaling factor for the largest anchor boxes
-scales = [0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
-aspect_ratios = [[0.25, 0.35, 0.45],
-                 [0.2, 0.3, 0.4, 0.5,0.6],
-                 [0.2, 0.3, 0.4, 0.5,0.6],
-                 [0.2, 0.3, 0.4, 0.5,0.6],
-                 [0.2, 0.35, 0.5],
-                 [0.25, 0.35, 0.45]]# The list of aspect ratios for the anchor boxes
+scales = [0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+aspect_ratios = [[0.2, 0.3, 0.4],
+                 [0.2, 0.25, 0.3, 0.35,0.4],
+                 [0.2, 0.25, 0.3, 0.35,0.4],
+                 [0.2, 0.25, 0.3, 0.35,0.4],
+                 [0.2, 0.3, 0.4],
+                 [0.2, 0.3, 0.4]]# The list of aspect ratios for the anchor boxes
 two_boxes_for_ar1 = False
 limit_boxes = False # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
-variances = [0.1, 0.1, 0.2, 0.2] # The variances by which the encoded target coordinates are scaled as in the original implementation
+variances = [0.5, 0.5, 0.5, 0.5] # The variances by which the encoded target coordinates are scaled as in the original implementation
 coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
 normalize_coords = True
 # These are the spatial dimensions (height, width) of the predictor layers. The `SSDBoxEncoder` constructor needs this information.
@@ -41,7 +41,7 @@ normalize_coords = True
 
 # 1: Set the batch size.
 
-batch_size = 16 # Change the batch size if you like, or if you run into memory issues with your GPU.
+batch_size = 8 # Change the batch size if you like, or if you run into memory issues with your GPU.
 
 """
 CREATE MODEL
@@ -117,7 +117,7 @@ train_generator = train_dataset.generate(batch_size=batch_size,
                                          resize=False,
                                          gray=False,
                                          limit_boxes=True, # While the anchor boxes are not being clipped, the ground truth boxes should be
-                                         include_thresh=0.4,
+                                         include_thresh=0.9,
                                          diagnostics=False)
 
 val_generator = val_dataset.generate(batch_size=batch_size,
@@ -135,7 +135,7 @@ val_generator = val_dataset.generate(batch_size=batch_size,
                                      resize=False,
                                      gray=False,
                                      limit_boxes=True,
-                                     include_thresh=0.4,
+                                     include_thresh=0.9,
                                      diagnostics=False)
 
 # Get the number of samples in the training and validations datasets to compute the epoch lengths below.
@@ -155,7 +155,7 @@ epochs = 50
 history = model.fit_generator(generator = train_generator,
                               steps_per_epoch = ceil(n_train_samples/batch_size),
                               epochs = epochs,
-                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd576_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
+                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd300_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
                                            monitor='val_loss',
                                            verbose=1,
                                            save_best_only=True,
@@ -165,13 +165,19 @@ history = model.fit_generator(generator = train_generator,
                                            LearningRateScheduler(lr_schedule),
                                            EarlyStopping(monitor='val_loss',
                                            min_delta=0.001,
-                                           patience=2)],
+                                           patience=10),
+                                           ReduceLROnPlateau(monitor='val_loss',
+                                                             factor=0.5,
+                                                             patience=10,
+                                                             epsilon=0.001,
+                                                             cooldown=0)],
                               validation_data = val_generator,
                               validation_steps = ceil(n_val_samples/batch_size))
+                                           
 
 # TODO: Set the filename (without the .h5 file extension!) under which to save the model and weights.
 #       Do the same in the `ModelCheckpoint` callback above.
-model_name = r'./models/ssd576_pylon'
+model_name = r'./models/ssd300_pylon'
 model.save('{}.h5'.format(model_name))
 model.save_weights('{}_weights.h5'.format(model_name))
 

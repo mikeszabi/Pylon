@@ -15,8 +15,9 @@ from matplotlib import pyplot as plt
 
 # 1: Set the generator
 
-img_height=300
-img_width=300
+img_height=272
+img_width=272
+gray=True
 
 
 predict_generator = val_dataset.generate(batch_size=1,
@@ -31,8 +32,8 @@ predict_generator = val_dataset.generate(batch_size=1,
                                          random_crop=False,
                                          crop=False,
                                          resize=False,
-                                         gray=False,
-                                         limit_boxes=True,
+                                         gray=gray,
+                                         limit_boxes=gray,
                                          include_thresh=0.8,
                                          diagnostics=False)
 
@@ -40,7 +41,7 @@ predict_generator = val_dataset.generate(batch_size=1,
 
 X, y_true, filenames = next(predict_generator)
 
-i = 0 # Which batch item to look at
+i =0 # Which batch item to look at
 
 print("Image:", filenames[i])
 print()
@@ -54,7 +55,7 @@ t=time.time()
 y_pred = model.predict(X)
 # 4: Decode the raw prediction `y_pred`
 y_pred_decoded = decode_y2(y_pred,
-                           confidence_thresh=0.5,
+                           confidence_thresh=0.25,
                            iou_threshold=0.01,
                            top_k='all',
                            input_coords='centroids',
@@ -70,7 +71,7 @@ print("Predicted boxes:\n")
 print(y_pred_decoded[i])
 
 plt.figure(figsize=(20,12))
-plt.imshow(X[i])
+plt.imshow(np.squeeze(X[i]),cmap='gray')
 
 current_axis = plt.gca()
 
