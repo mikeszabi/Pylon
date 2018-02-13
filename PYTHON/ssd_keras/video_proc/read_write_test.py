@@ -7,6 +7,7 @@ Created on Tue Dec 12 12:51:20 2017
 
 import numpy as np
 import cv2
+import os
 print(cv2.__version__)
 
 import time
@@ -21,7 +22,10 @@ crop_mode='left' # left, right, middle
 read
 """
 
-video_stream=r'C:\Users\fodrasz\OneDrive\Annotation\Videos\VB_long.m4v'
+base_dir=r'E:\\'
+#base_dir=r'C:\\Users\\fodrasz\\'
+
+video_stream=os.path.join(base_dir,'OneDrive\Annotation\Videos\VB_short.mp4')
 
 #cap = cv2.VideoCapture(video_stream)
 #cap.get(cv2.CAP_PROP_FRAME_COUNT)
