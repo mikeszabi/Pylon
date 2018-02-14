@@ -5,76 +5,121 @@ Created on Wed Mar 29 11:19:00 2017
 @author: Szabolcs
 """
 
-import warnings
 
 import numpy as np
-import time
 import cv2
-import os
-print(cv2.__version__)
-from src_ssd.keras_ssd7 import build_model
-from keras import backend as K
-from keras.models import load_model, model_from_json
+from keras.models import load_model
 from src_ssd.keras_ssd_loss import SSDLoss
 from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
-from src_ssd.keras_layer_L2Normalization import L2Normalization
 from src_ssd.ssd_box_encode_decode_utils import decode_y2
 
+#from matplotlib import pyplot as plt
+#
+#import scipy.misc
 
+class image_prepare:
+    def __init__(self,new_height = 272, dx_roi_pct=20, crop_mode='middle'):
+        self.im=None # original image
+        self.scale=None # resize scale
+        self.im_square=None # small square image - input of detection model
+        self.x0_square=None # x coordinate of the resized image in  square image coordinates
+        self.im_roi=None # roi cropped from original image
+        
+        self.new_height=new_height
+        self.crop_mode=crop_mode
+        self.dx_roi_square=int(dx_roi_pct*self.new_height/100) # fix width of the roi as the pct of the height
+        
+        # This class stores the original and resized/cropped images and the roi coordinates 
+        
+        # new_height - the desired output image hight
+        # crop_mode (left,right, middle) - define how to crop landscape images
 
-def create_image(image_file,new_height = 272, crop_mode='middle'):
-    
-    
-    # Parameters
-    # image_file - PATH of the input image
-    # new_height - the desired output image hight
-    # crop_mode (left,right, middle) - define how to crop landscape images
-    
-    # Output
-    # square image with the desired height in uint8 format
-    
-    # loads image from file
-    image = cv2.imread(image_file)
-    if image is None:
-        print('Image file could not be read')
-        return None
-    if image.ndim==1:
-        image=np.expand_dims(image, axis=2)
-    elif not image.ndim==3:
-        print('Wrong image format')
-        return None
-
-    # converting to RGB
-    image=cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-    
-    # resize to new_height x new_height
-    scale = new_height / image.shape[0]
-    dim = (int(image.shape[1] * scale),new_height)
-         
-    im_resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+    def load_image(self,image_file):
         
-    
-    im_square=np.zeros((new_height,new_height,image.ndim),'uint8')
         
-    image_aspect_ratio = dim[0] / dim[1]
+        # Parameters
+        # image_file - PATH of the input image
         
-    
-    # ToDo: save crop dimensions
         
-    if image_aspect_ratio < 1:
-        im_square[:,int(new_height/2-dim[0]/2):int(new_height/2+dim[0]/2),:]=im_resized
-    else:
-        if crop_mode=='middle':
-            im_square=im_resized[:,int(dim[0]/2-new_height/2):int(dim[0]/2+new_height/2),:]
-        elif crop_mode=='left':
-            im_square=im_resized[:,0:new_height,:]
-        elif crop_mode=='right':
-            im_square=im_resized[:,dim[0]-new_height:dim[0],:]
+        # Output
+        # numpy array
+        # square image with the desired height in uint8 format
+        
+        # loads image from file
+        im_0 = cv2.imread(image_file)
+        if im_0 is None:
+            print('Image file could not be read')
+            return None
+        if im_0.ndim==1:
+            im_0=np.expand_dims(self.im, axis=2)
+        elif not im_0.ndim==3:
+            print('Wrong image format')
+            return None
+        else:
+            # converting to RGB from BGR
+            self.im=cv2.cvtColor(im_0,cv2.COLOR_BGR2RGB)
             
-    return im_square
+        return self.im
+    
+    def resize_square_image(self):
+    
+        # resize to new_height x new_height
+        self.scale = self.new_height / self.im.shape[0]
+        dim = (int(self.im.shape[1] * self.scale),self.new_height)
+             
+        im_resized = cv2.resize(self.im, dim, interpolation = cv2.INTER_AREA)
+        
+    
+        self.im_square=np.zeros((self.new_height,self.new_height,self.im.ndim),'uint8')
+        
+        image_aspect_ratio = dim[0] / dim[1] # width/height
+            
+        
+        # ToDo: save crop dimensions
+            
+        if image_aspect_ratio < 1:
+            # portrait type
+            self.x0_square=-int(self.new_height/2-dim[0]/2)
+            self.im_square[:,int(self.new_height/2-dim[0]/2):int(self.new_height/2+dim[0]/2),:]=im_resized
+        else:
+            if self.crop_mode=='middle':
+                self.x0_square=int(dim[0]/2-self.new_height/2)
+            elif self.crop_mode=='left':
+                self.x0_square=0
+            elif self.crop_mode=='right':
+                self.x0_square=dim[0]-self.new_height
+            
+            self.im_square=im_resized[:,self.x0_square:self.new_height+self.x0_square,:]
 
-#def crop_roi(im,new_height = 272, crop_mode='middle'):
-#def roi_on_original
+        return self.im_square
+    
+    def calc_roi_stripe(self,x_roi_start_square):
+        
+        # input: roi_square_x - the start x coordinate of the ROI strip on the small square image
+        
+        assert x_roi_start_square < self.im_square.shape[1], "Inproper ROI"       
+        
+        # calculate the roi stripe on the original image
+
+        x_roi_end_square=min(x_roi_start_square+self.dx_roi_square,self.im_square.shape[1])
+        
+        # transform back to the original image
+        
+        x_roi_end=int((x_roi_end_square+self.x0_square)/self.scale)
+        x_roi_start=x_roi_end-int(self.dx_roi_square/self.scale)
+        
+        return x_roi_start
+    
+    def crop_roi_stripe(self,x_roi_start):
+        
+        assert x_roi_start < self.im.shape[1], "Inproper ROI"       
+        
+        # create the roi stripe on the original image
+
+        self.im_roi=self.im[:,x_roi_start:x_roi_start+int(self.dx_roi_square/self.scale),:]
+        
+        return self.im_roi
+
     
 class ssd_detection:
     def __init__(self,model_file=None):
@@ -146,18 +191,47 @@ class ssd_detection:
 #        img_width (int, optional): The width of the input images. Only needed if `normalize_coords` is `True`.
 
         
-        return y_pred_decoded[0][0][2]
+        return y_pred_decoded
 
 
 if __name__ == "__main__":
     
     
     model_file=r'./models/ssd7_pylon.h5'
-    image_file=r'e:\OneDrive\Annotation\Picturio\TEST\metal_1.jpg'
-
-#   creating gui
     roid = ssd_detection(model_file=model_file)
 
-    im_square=create_image(image_file,new_height = 272, crop_mode='middle')
+
+    image_file=r'e:\OneDrive\Annotation\Picturio\TEST\concrete_1.jpg'
+
+    imp=image_prepare(new_height = 272, dx_roi_pct=25, crop_mode='middle')
     
-    roi=roid.detect_roi(im_square)
+ 
+    im=imp.load_image(image_file)
+    if im is not None:
+        im_square=imp.resize_square_image()
+    
+#        name, ext=image_file.split('.')
+#        scipy.misc.imsave(name+'_small.'+ext, im_square)
+
+    roi_box=roid.detect_roi(im_square)
+    
+#    np.set_printoptions(precision=2, suppress=True, linewidth=90)
+#    print("Predicted boxes:\n")
+#    print(roi_box[0])
+#    
+#    fig, ax = plt.subplots(1,2)
+#    #plt.figure(figsize=(20,12))
+#    ax[0].imshow(im_square)
+#    
+#    for box in roi_box[0]:
+#        ax[0].add_patch(plt.Rectangle((box[2], box[4]), box[3]-box[2], box[5]-box[4], color='blue', fill=False, linewidth=2))  
+#    
+    if len(roi_box[0])==1:
+        
+        x_roi_start_square=roi_box[0][0][2]
+        
+        x_roi_start=imp.calc_roi_stripe(x_roi_start_square)
+        
+#        im_roi=imp.crop_roi_stripe(x_roi_start)
+        
+#        ax[1].imshow(im_roi)
