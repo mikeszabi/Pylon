@@ -8,6 +8,8 @@ import numpy as np
 import time
 
 from matplotlib import pyplot as plt
+from src_ssd.keras_layer_L2Normalization import L2Normalization
+from src_ssd.ssd_box_encode_decode_utils import decode_y2
 
 #%matplotlib inline
 
@@ -17,7 +19,7 @@ from matplotlib import pyplot as plt
 
 img_height=272
 img_width=272
-gray=True
+gray=False
 
 
 predict_generator = val_dataset.generate(batch_size=1,

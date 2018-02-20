@@ -13,15 +13,15 @@ from matplotlib import pyplot as plt
 
 import object_roi_detector as oroid
 
-base_dir=r'E:\\'
-#base_dir=r'C:\\Users\\fodrasz\\'
+#base_dir=r'E:\\'
+base_dir=r'C:\\Users\\fodrasz\\'
 base_data_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon','pylon1152_output')
 PYLON_images_path           = os.path.join(base_data_path,'JPEGImages')
 
 
 #img_channels = 3 # Number of color channels of the input images
 
-model_file=r'./models/ssd7_pylon.h5'
+model_file=r'./models/ssd300_pylon.h5'
 
 
 roid = oroid.ssd_detection(model_file=model_file)

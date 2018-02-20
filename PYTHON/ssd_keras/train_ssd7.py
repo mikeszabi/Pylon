@@ -11,6 +11,8 @@ import numpy as np
 
 from src_ssd.keras_ssd_loss import SSDLoss
 from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
+from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder
+
 
 from keras import backend as K
 from keras.optimizers import Adam
@@ -24,7 +26,7 @@ from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization
 """
 Parameters
 """
-model_name = r'./models/ssd7_pylon'
+model_name = r'./models/ssd300_pylon'
 
 
 ### To be optimized
@@ -498,7 +500,15 @@ model.save_weights('{}_weights.h5'.format(model_name))
 #model_json=model.to_json()
 #with open('{}.json'.format(model_name), "w") as json_file:
 #    json_file.write(model_json)
-
+#json_file = open('model.json', 'r')
+#loaded_model_json = json_file.read()
+#json_file.close()
+#from keras.models import model_from_json
+#
+#loaded_model = model_from_json(loaded_model_json)
+## load weights into new model
+#loaded_model.load_weights("model.h5")
+#print("Loaded model from disk")
 
 print()
 print("Model saved under {}.h5".format(model_name))
