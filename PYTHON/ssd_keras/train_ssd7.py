@@ -25,8 +25,9 @@ from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder, decode_y, decode_
 ### To be optimized
 img_height = 272 # Height of the input images
 img_width = 272 # Width of the input images
-img_channels = 1 # Number of color channels of the input images
+img_channels = 3 # Number of color channels of the input images
 n_classes = len(merged_classes) # Number of classes including the background class
+gray=False
 if img_channels==1:
     gray=True
 #min_scale = 0.32 # The scaling factor for the smallest anchor boxes
