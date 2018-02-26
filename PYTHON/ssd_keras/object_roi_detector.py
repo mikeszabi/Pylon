@@ -11,6 +11,7 @@ import cv2
 from keras.models import load_model
 from src_ssd.keras_ssd_loss import SSDLoss
 from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
+from src_ssd.keras_layer_L2Normalization import L2Normalization
 from src_ssd.ssd_box_encode_decode_utils import decode_y2
 
 #from matplotlib import pyplot as plt
@@ -140,18 +141,20 @@ class image_prepare:
 
     
 class ssd_detection:
-    def __init__(self,model_file=None):
+    def __init__(self,model_file=None, normalize_coords = False):
 
         # load detection model
         print('...loading detection model')
 
         ssd_loss = SSDLoss(neg_pos_ratio=1, n_neg_min=0, alpha=1.0)
-        self.model=load_model(model_file,custom_objects={'AnchorBoxes':AnchorBoxes,'compute_loss': ssd_loss.compute_loss})
+        self.model=load_model(model_file,custom_objects={'AnchorBoxes':AnchorBoxes,'compute_loss': ssd_loss.compute_loss,'L2Normalization':L2Normalization})
 
         # model specific parameters
         self.im_height=self.model.input_shape[1]
         self.im_width=self.model.input_shape[2] 
-        self.im_channels=self.model.input_shape[3]         
+        self.im_channels=self.model.input_shape[3]   
+        
+        self.normalize_coords=normalize_coords
  
     
     def detect_roi(self, im, confidence_thresh=0.01, iou_threshold=0.25):
@@ -178,7 +181,7 @@ class ssd_detection:
                                    iou_threshold=iou_threshold,
                                    top_k=1, # only one detection per image
                                    input_coords='centroids',
-                                   normalize_coords=False,
+                                   normalize_coords=self.normalize_coords,
                                    img_height=self.im_height,
                                    img_width=self.im_width)
 
@@ -206,8 +209,7 @@ class ssd_detection:
 #            Do not set this to `True` if the model already outputs absolute coordinates, as that would result in incorrect
 #            coordinates. Requires `img_height` and `img_width` if set to `True`. Defaults to `False`.
 #        img_height (int, optional): The height of the input images. Only needed if `normalize_coords` is `True`.
-#        img_width (int, optional): The width of the input images. Only needed if `normalize_coords` is `True`.
-
+#        img_width (int, optional): The width of the input images. Only needed if `normalize_coords` is `True`.            
         
         return y_pred_decoded
 
