@@ -17,6 +17,20 @@ from src_ssd.ssd_box_encode_decode_utils import decode_y2
 #
 #import scipy.misc
 
+def image_from_buffer(buffer,preserved_bytes):
+    im=np.frombuffer(buffer, dtype=np.uint8, count=-1, offset=0)
+    return im
+
+def buffer_from_file(buffer_file,n_preserved_bytes):
+    im=None
+    with open(buffer_file, "rb") as binary_file:
+        # Read the whole file at once
+        buffer = binary_file.read()
+    return buffer
+    
+def write_to_buffer(self,buffer_file,im):
+    im.astype('uint8').tofile(buffer_file)
+
 class image_prepare:
     def __init__(self,new_height = 272, dx_roi_pct=20, crop_mode='middle'):
         self.im=None # original image
@@ -34,7 +48,7 @@ class image_prepare:
         # new_height - the desired output image hight
         # crop_mode (left,right, middle) - define how to crop landscape images
 
-    def load_image(self,image_file):
+    def load_image_from_file(self,image_file):
         
         
         # Parameters
@@ -60,6 +74,10 @@ class image_prepare:
             self.im=cv2.cvtColor(im_0,cv2.COLOR_BGR2RGB)
             
         return self.im
+    
+    def convert_image_from_buffer(self,buffer,preserved_bytes):
+        self.im=image_from_buffer(buffer,preserved_bytes)
+        self.im_info=buffer[0:preserved_bytes]
     
     def resize_square_image(self):
     
