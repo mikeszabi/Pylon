@@ -14,8 +14,8 @@ import object_roi_detector as oroid
 
 import time
 img_channels = 3 # Number of color channels of the input images
-img_height = 272 # Height of the input images
-img_width = 272 # Width of the input images
+img_height = 256 # Height of the input images
+img_width = 136 # Width of the input images
 new_height=img_height
 normalize_coords=False
 crop_mode='left' # left, right, middle
@@ -88,7 +88,7 @@ while(cap.isOpened()):
         """
         
         t=time.time()
-        roi_box=roid.detect_roi(im_square,confidence_thresh=0.01, iou_threshold=0.5)
+        roi_box=roid.detect_roi(im_square,confidence_thresh=0.01, iou_threshold=0.25)
 
         
         print(time.time()-t)
