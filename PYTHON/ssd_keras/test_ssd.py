@@ -17,8 +17,8 @@ from src_ssd.ssd_box_encode_decode_utils import decode_y2
 
 # 1: Set the generator
 
-img_height=256
-img_width=136
+img_height=512
+img_width=272
 gray=False
 
 

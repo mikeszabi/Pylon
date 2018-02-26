@@ -23,7 +23,7 @@ def image_from_buffer(buffer,preserved_bytes):
     return im
 
 def buffer_from_file(buffer_file,n_preserved_bytes):
-    im=None
+    buffer=None
     with open(buffer_file, "rb") as binary_file:
         # Read the whole file at once
         buffer = binary_file.read()
@@ -33,7 +33,7 @@ def write_to_buffer(self,buffer_file,im):
     im.astype('uint8').tofile(buffer_file)
 
 class image_prepare:
-    def __init__(self,new_height = 272, dx_roi_pct=20, crop_mode='middle'):
+    def __init__(self,new_height = 512, new_width=272, dx_roi_pct=20, crop_mode='middle'):
         self.im=None # original image
         self.scale=None # resize scale
         self.im_square=None # small square image - input of detection model
@@ -41,8 +41,9 @@ class image_prepare:
         self.im_roi=None # roi cropped from original image
         
         self.new_height=new_height
+        self.new_width=new_width
         self.crop_mode=crop_mode
-        self.dx_roi_square=int(dx_roi_pct*self.new_height/100) # fix width of the roi as the pct of the height
+        self.dx_roi=int(dx_roi_pct*self.new_width/100) # fix width of the roi as the pct of the height
         
         # This class stores the original and resized/cropped images and the roi coordinates 
         
@@ -80,16 +81,16 @@ class image_prepare:
         self.im=image_from_buffer(buffer,preserved_bytes)
         self.im_info=buffer[0:preserved_bytes]
     
-    def resize_square_image(self):
+    def resize_crop_image(self):
     
-        # resize to new_height x new_height
+        # resize to new_height x new_width - new_width is fixed
         self.scale = self.new_height / self.im.shape[0]
         dim = (int(self.im.shape[1] * self.scale),self.new_height)
              
         im_resized = cv2.resize(self.im, dim, interpolation = cv2.INTER_AREA)
         
     
-        self.im_square=np.zeros((self.new_height,self.new_height,self.im.ndim),'uint8')
+        self.im_cropped=np.zeros((self.new_height,self.new_width,self.im.ndim),'uint8')
         
         image_aspect_ratio = dim[0] / dim[1] # width/height
             
@@ -98,34 +99,34 @@ class image_prepare:
             
         if image_aspect_ratio < 1:
             # portrait type
-            self.x0_square=-int(self.new_height/2-dim[0]/2)
-            self.im_square[:,int(self.new_height/2-dim[0]/2):int(self.new_height/2+dim[0]/2),:]=im_resized
+            self.x0_crop=-int(self.new_width/2-dim[0]/2)
+            self.im_crop[:,int(self.new_height/2-dim[0]/2):int(self.new_height/2+dim[0]/2),:]=im_resized
         else:
             if self.crop_mode=='middle':
-                self.x0_square=int(dim[0]/2-self.new_height/2)
+                self.x0_crop=int(dim[0]/2-self.new_width/2)
             elif self.crop_mode=='left':
-                self.x0_square=0
+                self.x0_crop=0
             elif self.crop_mode=='right':
-                self.x0_square=dim[0]-self.new_height
+                self.x0_crop=dim[0]-self.new_width
             
-            self.im_square=im_resized[:,self.x0_square:self.new_height+self.x0_square,:]
+            self.im_crop=im_resized[:,self.x0_crop:self.new_width+self.x0_crop,:]
 
-        return self.im_square
+        return self.im_crop
     
-    def calc_roi_stripe(self,x_roi_start_square):
+    def calc_roi_stripe(self,x_roi_start):
         
-        # input: roi_square_x - the start x coordinate of the ROI strip on the small square image
+        # input: x_roi_start - the start x coordinate of the ROI strip on the cropped image
         
-        assert x_roi_start_square < self.im_square.shape[1], "Inproper ROI"       
+        assert x_roi_start < self.im_square.shape[1], "Inproper ROI"       
         
         # calculate the roi stripe on the original image
 
-        x_roi_end_square=min(x_roi_start_square+self.dx_roi_square,self.im_square.shape[1])
+        x_roi_end=min(x_roi_start+self.dx_roi_crop,self.im_crop.shape[1])
         
         # transform back to the original image
         
-        x_roi_end=int((x_roi_end_square+self.x0_square)/self.scale)
-        x_roi_start=x_roi_end-int(self.dx_roi_square/self.scale)
+        x_roi_end=int((x_roi_end+self.x0_crop)/self.scale)
+        x_roi_start=x_roi_end-int(self.dx_roi_crop/self.scale)
         
         return x_roi_start
     
@@ -135,7 +136,7 @@ class image_prepare:
         
         # create the roi stripe on the original image
 
-        self.im_roi=self.im[:,x_roi_start:x_roi_start+int(self.dx_roi_square/self.scale),:]
+        self.im_roi=self.im[:,x_roi_start:x_roi_start+int(self.dx_roi_crop/self.scale),:]
         
         return self.im_roi
 

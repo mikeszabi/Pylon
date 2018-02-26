@@ -30,8 +30,8 @@ model_name = r'./models/ssd300_pylon'
 
 
 ### To be optimized
-img_height = 256 # Height of the input images
-img_width = 136 # Width of the input images
+img_height = 512 # Height of the input images
+img_width = 272 # Width of the input images
 size = min(img_width, img_height)
 
 img_channels = 3 # Number of color channels of the input images
@@ -58,7 +58,7 @@ limit_boxes = False # Whether or not you want to limit the anchor boxes to lie e
 ### ???
 variances = [1, 1, 1, 1] # The variances by which the encoded target coordinates are scaled as in the original implementation
 coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
-normalize_coords = False
+normalize_coords = True
 
 batch_size = 8 # Change the batch size if you like, or if you run into memory issues with your GPU.
 epochs = 50
@@ -234,7 +234,7 @@ def build_model(image_size,
     conv1 = Conv2D(32, (5, 5), name='conv1', strides=(1, 1), padding="same")(normed)
     conv1 = BatchNormalization(axis=3, momentum=0.99, name='bn1')(conv1) # Tensorflow uses filter format [filter_height, filter_width, in_channels, out_channels], hence axis = 3
     conv1 = ELU(name='elu1')(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 1), name='pool1')(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2), name='pool1')(conv1)
 
     conv2 = Conv2D(48, (3, 3), name='conv2', strides=(1, 1), padding="same")(pool1)
     conv2 = BatchNormalization(axis=3, momentum=0.99, name='bn2')(conv2)

@@ -13,20 +13,16 @@ import object_roi_detector as oroid
 
 
 import time
-img_channels = 3 # Number of color channels of the input images
-img_height = 256 # Height of the input images
-img_width = 136 # Width of the input images
-new_height=img_height
-normalize_coords=False
+normalize_coords=True
 crop_mode='left' # left, right, middle
 
 """
 init
 """
-model_file=r'./models/ssd7_pylon.h5'
+model_file=r'./models/ssd8_pylon.h5'
 roid = oroid.ssd_detection(model_file=model_file,normalize_coords=normalize_coords)
 
-imp=oroid.image_prepare(new_height = img_height, dx_roi_pct=25, crop_mode=crop_mode)
+imp=oroid.image_prepare(new_height = roid.im_height, new_width = roid.im_width, dx_roi_pct=25, crop_mode=crop_mode)
     
 classes = ['background',
            'concretepylon', 'metalpylon', 'woodpylon']
@@ -66,7 +62,7 @@ cap = cv2.VideoCapture(video_stream)
 fps=cap.get(cv2.CAP_PROP_FPS)
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter('output.avi',fourcc, fps, (img_height,img_width))
+out = cv2.VideoWriter('output.avi',fourcc, fps, ( roid.im_height,roid.im_width))
 
 
 
@@ -76,9 +72,9 @@ while(cap.isOpened()):
         frame=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 
         imp.im=frame.copy()
-        im_square=imp.resize_square_image()
+        im_crop=imp.resize_crop_image()
 
-        roi_box=roid.detect_roi(im_square)
+        roi_box=roid.detect_roi(im_crop)
         
       
 #        cv2.imshow('frame',im_square[0,:,:,:])
@@ -88,13 +84,13 @@ while(cap.isOpened()):
         """
         
         t=time.time()
-        roi_box=roid.detect_roi(im_square,confidence_thresh=0.01, iou_threshold=0.25)
+        roi_box=roid.detect_roi(im_crop,confidence_thresh=0.9, iou_threshold=0)
 
         
         print(time.time()-t)
         
-        frame_out=im_square.copy()
-        if img_channels==1:
+        frame_out=im_crop.copy()
+        if  roid.im_channels==1:
             frame_out=cv2.cvtColor(frame_out,cv2.COLOR_GRAY2RGB)
             
         for box in roi_box[0]:
