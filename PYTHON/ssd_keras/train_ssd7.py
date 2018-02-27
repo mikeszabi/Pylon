@@ -26,12 +26,12 @@ from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization
 """
 Parameters
 """
-model_name = r'./models/ssd300_pylon'
+model_name = r'./models/ssd7_pylon'
 
 
 ### To be optimized
-img_height = 512 # Height of the input images
-img_width = 272 # Width of the input images
+img_height = 256 # Height of the input images
+img_width = 136 # Width of the input images
 size = min(img_width, img_height)
 
 img_channels = 3 # Number of color channels of the input images
@@ -46,7 +46,7 @@ if img_channels==1:
 scales = [0.6, 0.7, 0.8, 0.9, 1] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
 
 ### To be optimized
-aspect_ratios = [0.2, 0.25, 0.3, 0.35]
+aspect_ratios = [0.25, 0.3, 0.35, 0.4]
 #w= scale*size*sqrt(aspect_ratio) - size==smaller size
 #max(img_width/(np.sqrt(aspect_ratios)*size))
 #h=scale*size/sqrt(aspect_ratio)
@@ -60,7 +60,7 @@ variances = [1, 1, 1, 1] # The variances by which the encoded target coordinates
 coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
 normalize_coords = True
 
-batch_size = 8 # Change the batch size if you like, or if you run into memory issues with your GPU.
+batch_size = 16 # Change the batch size if you like, or if you run into memory issues with your GPU.
 epochs = 50
 """
 BUILD model
@@ -234,7 +234,7 @@ def build_model(image_size,
     conv1 = Conv2D(32, (5, 5), name='conv1', strides=(1, 1), padding="same")(normed)
     conv1 = BatchNormalization(axis=3, momentum=0.99, name='bn1')(conv1) # Tensorflow uses filter format [filter_height, filter_width, in_channels, out_channels], hence axis = 3
     conv1 = ELU(name='elu1')(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2), name='pool1')(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 1), name='pool1')(conv1)
 
     conv2 = Conv2D(48, (3, 3), name='conv2', strides=(1, 1), padding="same")(pool1)
     conv2 = BatchNormalization(axis=3, momentum=0.99, name='bn2')(conv2)
@@ -261,7 +261,7 @@ def build_model(image_size,
     conv6 = ELU(name='elu6')(conv6)
     pool6 = MaxPooling2D(pool_size=(2, 2), name='pool6')(conv6)
 
-    conv7 = Conv2D(32, (3, 3), name='conv7', strides=(1, 1), padding="same")(pool6)
+    conv7 = Conv2D(48, (3, 3), name='conv7', strides=(1, 1), padding="same")(pool6)
     conv7 = BatchNormalization(axis=3, momentum=0.99, name='bn7')(conv7)
     conv7 = ELU(name='elu7')(conv7)
 

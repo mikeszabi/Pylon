@@ -36,10 +36,10 @@ n_classes = len(merged_classes) # Number of classes including the background cla
 #max_scale = 0.96 # The scaling factor for the largest anchor boxes
 
 ### To be optimized
-scales = [0.6, 0.7, 0.8, 0.9, 1,1.1] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+scales = [0.4, 0.6, 0.8, 0.9, 1,1.1] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
 
 ### To be optimized
-aspect_ratios = [0.2, 0.25, 0.3, 0.35, 0.4]
+aspect_ratios = [0.25, 0.285, 0.33, 0.375, 0.4]
 
 
 #w= scale*size*sqrt(aspect_ratio) - size==smaller size
@@ -55,13 +55,7 @@ limit_boxes = False # Whether or not you want to limit the anchor boxes to lie e
 variances = [1, 1, 1, 1] # The variances by which the encoded target coordinates are scaled as in the original implementation
 coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
 normalize_coords = True
-# These are the spatial dimensions (height, width) of the predictor layers. The `SSDBoxEncoder` constructor needs this information.
-#predictor_sizes = [[58, 35], 
-#                   [28, 16],
-#                   [13,  7],
-#                   [ 5,  2]]
 
-# 4: Set the batch size.
 
 batch_size = 16 # Change the batch size if you like, or if you run into memory issues with your GPU.
 epochs = 50
@@ -242,7 +236,7 @@ def build_model(image_size,
     conv1 = Conv2D(32, (5, 5), name='conv1', strides=(1, 1), padding="same")(normed)
     conv1 = BatchNormalization(axis=3, momentum=0.99, name='bn1')(conv1) # Tensorflow uses filter format [filter_height, filter_width, in_channels, out_channels], hence axis = 3
     conv1 = ELU(name='elu1')(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 1), name='pool1')(conv1)
+    pool1 = MaxPooling2D(pool_size=(1, 1), name='pool1')(conv1)
 
     conv2 = Conv2D(48, (3, 3), name='conv2', strides=(1, 1), padding="same")(pool1)
     conv2 = BatchNormalization(axis=3, momentum=0.99, name='bn2')(conv2)
@@ -274,7 +268,7 @@ def build_model(image_size,
     conv7 = ELU(name='elu7')(conv7)
     pool7 = MaxPooling2D(pool_size=(2, 2), name='pool7')(conv7)
     
-    conv8 = Conv2D(32, (3, 3), name='conv8', strides=(1, 1), padding="same")(pool7)
+    conv8 = Conv2D(48, (3, 3), name='conv8', strides=(1, 1), padding="same")(pool7)
     conv8 = BatchNormalization(axis=3, momentum=0.99, name='bn8')(conv8)
     conv8 = ELU(name='elu8')(conv8)
 
@@ -436,7 +430,7 @@ ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
                                 two_boxes_for_ar1=two_boxes_for_ar1,
                                 limit_boxes=limit_boxes,
                                 variances=variances,
-                                pos_iou_threshold=0.7, ### To be optimized
+                                pos_iou_threshold=0.8, ### To be optimized
                                 neg_iou_threshold=0.2, ### To be optimized
                                 coords=coords,
                                 normalize_coords=normalize_coords)
@@ -459,7 +453,7 @@ train_generator = train_dataset.generate(batch_size=batch_size,
                                          resize=False,
                                          gray=False,
                                          limit_boxes=True, # While the anchor boxes are not being clipped, the ground truth boxes should be
-                                         include_thresh=0.8,
+                                         include_thresh=0.75,
                                          diagnostics=False)
 
 val_generator = val_dataset.generate(batch_size=batch_size,
@@ -477,7 +471,7 @@ val_generator = val_dataset.generate(batch_size=batch_size,
                                      resize=False,
                                      gray=False,
                                      limit_boxes=True,
-                                     include_thresh=0.8,
+                                     include_thresh=0.75,
                                      diagnostics=False)
 
 
@@ -505,7 +499,7 @@ history = model.fit_generator(generator = train_generator,
                                            LearningRateScheduler(lr_schedule),
                                            EarlyStopping(monitor='val_loss',
                                            min_delta=0.001,
-                                           patience=10),
+                                           patience=5),
                                            ReduceLROnPlateau(monitor='val_loss',
                                                              factor=0.5,
                                                              patience=10,

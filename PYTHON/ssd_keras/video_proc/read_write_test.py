@@ -19,7 +19,7 @@ crop_mode='left' # left, right, middle
 """
 init
 """
-model_file=r'./models/ssd8_pylon.h5'
+model_file=r'./models/ssd7_pylon.h5'
 roid = oroid.ssd_detection(model_file=model_file,normalize_coords=normalize_coords)
 
 imp=oroid.image_prepare(new_height = roid.im_height, new_width = roid.im_width, dx_roi_pct=25, crop_mode=crop_mode)
@@ -84,7 +84,7 @@ while(cap.isOpened()):
         """
         
         t=time.time()
-        roi_box=roid.detect_roi(im_crop,confidence_thresh=0.9, iou_threshold=0)
+        roi_box=roid.detect_roi(im_crop,confidence_thresh=0.5, iou_threshold=0)
 
         
         print(time.time()-t)
