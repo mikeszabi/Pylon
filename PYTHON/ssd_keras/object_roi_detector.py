@@ -18,40 +18,38 @@ from src_ssd.ssd_box_encode_decode_utils import decode_y2
 #
 #import scipy.misc
 
-def image_from_buffer(buffer,preserved_bytes):
-    im=np.frombuffer(buffer, dtype=np.uint8, count=-1, offset=0)
-    return im
-
-def buffer_from_file(buffer_file,n_preserved_bytes):
+def buffer_from_file(buffer_file):
     buffer=None
     with open(buffer_file, "rb") as binary_file:
         # Read the whole file at once
         buffer = binary_file.read()
     return buffer
     
-def write_to_buffer(self,buffer_file,im):
+def write_to_buffer(buffer_file,im):
     im.astype('uint8').tofile(buffer_file)
 
 class image_prepare:
-    def __init__(self,new_height = 512, new_width=272, dx_roi_pct=20, crop_mode='middle'):
+    def __init__(self,new_height = 512, new_width=272, dx_roi_pct=20, crop_mode='middle', preserved_bytes=0):
         self.im=None # original image
         self.scale=None # resize scale
-        self.im_square=None # small square image - input of detection model
-        self.x0_square=None # x coordinate of the resized image in  square image coordinates
+        self.im_crop=None # small square image - input of detection model
+        self.x0_crop=None # x coordinate of the resized image relative to the cropped image coordinate
         self.im_roi=None # roi cropped from original image
         
         self.new_height=new_height
         self.new_width=new_width
         self.crop_mode=crop_mode
-        self.dx_roi=int(dx_roi_pct*self.new_width/100) # fix width of the roi as the pct of the height
+        self.dx_roi_crop=int(dx_roi_pct*self.new_width/100) # fix width of the roi as the pct of the width
         
         # This class stores the original and resized/cropped images and the roi coordinates 
         
         # new_height - the desired output image hight
         # crop_mode (left,right, middle) - define how to crop landscape images
+        
+        self.preserved_bytes=preserved_bytes
+        self.im_info= bytes([0x00]*preserved_bytes)
 
     def load_image_from_file(self,image_file):
-        
         
         # Parameters
         # image_file - PATH of the input image
@@ -77,30 +75,29 @@ class image_prepare:
             
         return self.im
     
-    def convert_image_from_buffer(self,buffer,preserved_bytes):
-        self.im=image_from_buffer(buffer,preserved_bytes)
-        self.im_info=buffer[0:preserved_bytes]
+    def convert_image_from_buffer(self,buffer):
+        self.im=np.frombuffer(buffer, dtype=np.uint8, count=-1, offset=0)
+        self.im=self.im.reshape((self.new_height,self.new_width,3))
+        self.im_info=buffer[0:self.preserved_bytes]
     
     def resize_crop_image(self):
     
         # resize to new_height x new_width - new_width is fixed
         self.scale = self.new_height / self.im.shape[0]
         dim = (int(self.im.shape[1] * self.scale),self.new_height)
-             
+        image_aspect_ratio = dim[0] / dim[1] # width/height
+            
         im_resized = cv2.resize(self.im, dim, interpolation = cv2.INTER_AREA)
         
     
-        self.im_cropped=np.zeros((self.new_height,self.new_width,self.im.ndim),'uint8')
-        
-        image_aspect_ratio = dim[0] / dim[1] # width/height
-            
+        self.im_cropped=np.zeros((self.new_height,self.new_width,self.im.ndim),'uint8')                 
         
         # ToDo: save crop dimensions
             
-        if image_aspect_ratio < 1:
+        if image_aspect_ratio < self.new_width/self.new_height:
             # portrait type
             self.x0_crop=-int(self.new_width/2-dim[0]/2)
-            self.im_crop[:,int(self.new_height/2-dim[0]/2):int(self.new_height/2+dim[0]/2),:]=im_resized
+            self.im_crop[:,int(self.new_width/2-dim[0]/2):int(self.new_width/2+dim[1]/2),:]=im_resized
         else:
             if self.crop_mode=='middle':
                 self.x0_crop=int(dim[0]/2-self.new_width/2)
@@ -112,12 +109,28 @@ class image_prepare:
             self.im_crop=im_resized[:,self.x0_crop:self.new_width+self.x0_crop,:]
 
         return self.im_crop
+
+    def calc_roi_coords(self,roi_coords):
+        
+        # transform ROI coords to the original image 
+        # input: ROI coords on the cropped image  (x,y,dx,dy) x=0,y=0 upper left corber of the image
+        
+        x,y,dx,dy=roi_coords
+        
+        # transform back to the original image
+        
+        x_orig=int((x+self.x0_crop)/self.scale)
+        y_orig=int(y/self.scale)
+        dx_orig=int(dx/self.scale)
+        dy_orig=int(dy/self.scale)
+        
+        return [x_orig,y_orig,dx_orig,dy_orig]
     
     def calc_roi_stripe(self,x_roi_start):
         
         # input: x_roi_start - the start x coordinate of the ROI strip on the cropped image
         
-        assert x_roi_start < self.im_square.shape[1], "Inproper ROI"       
+        assert x_roi_start < self.im_crop.shape[1], "Inproper ROI"       
         
         # calculate the roi stripe on the original image
 
@@ -139,6 +152,15 @@ class image_prepare:
         self.im_roi=self.im[:,x_roi_start:x_roi_start+int(self.dx_roi_crop/self.scale),:]
         
         return self.im_roi
+    
+    def get_output_buffer(self,roi_coord_orig):
+        coord_info=bytes(np.asarray(roi_coord_orig,'uint16'))
+        self.im_info
+
+        # concatenate bytes
+        con=self.im_info+coord_info
+        
+        return con
 
     
 class ssd_detection:
