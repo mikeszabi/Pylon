@@ -8,8 +8,15 @@ import numpy as np
 import time
 
 from matplotlib import pyplot as plt
+
+#import tensorflow as tf
+from keras.models import load_model
+
+from src_ssd.keras_ssd_loss import SSDLoss
+from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
 from src_ssd.keras_layer_L2Normalization import L2Normalization
 from src_ssd.ssd_box_encode_decode_utils import decode_y2
+
 
 #%matplotlib inline
 
@@ -17,10 +24,15 @@ from src_ssd.ssd_box_encode_decode_utils import decode_y2
 
 # 1: Set the generator
 
-img_height=256
-img_width=136
-gray=False
+model_file=r'./models/ssd7_pylon.h5'
+ssd_loss = SSDLoss(neg_pos_ratio=1, n_neg_min=0, alpha=1.0)
+model=load_model(model_file,custom_objects={'AnchorBoxes':AnchorBoxes,'compute_loss': ssd_loss.compute_loss,'L2Normalization':L2Normalization})
 
+# model specific parameters
+gray=False
+im_height=model.input_shape[1]
+im_width=model.input_shape[2] 
+im_channels=model.input_shape[3]   
 
 predict_generator = val_dataset.generate(batch_size=1,
                                          train=False,
@@ -30,7 +42,7 @@ predict_generator = val_dataset.generate(batch_size=1,
                                          translate=False,
                                          scale=False,
                                          max_crop_and_resize=(img_height, img_width, 1, 3),
-                                         random_pad_and_resize=(img_height, img_width, 1, 3, 1),
+                                         random_pad_and_resize=None,
                                          random_crop=False,
                                          crop=False,
                                          resize=False,
@@ -57,7 +69,7 @@ t=time.time()
 y_pred = model.predict(X)
 # 4: Decode the raw prediction `y_pred`
 y_pred_decoded = decode_y2(y_pred,
-                           confidence_thresh=0.25,
+                           confidence_thresh=0.01,
                            iou_threshold=0.01,
                            top_k='all',
                            input_coords='centroids',

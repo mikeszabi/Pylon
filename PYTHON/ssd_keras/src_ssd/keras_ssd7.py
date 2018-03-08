@@ -24,8 +24,8 @@ from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization
 from keras.regularizers import l2
 
 from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
-from src_ssd.keras_layer_DecodeDetections import DecodeDetections
-from src_ssd.keras_layer_DecodeDetections2 import DecodeDetections2
+#from src_ssd.keras_layer_DecodeDetections import DecodeDetections
+#from src_ssd.keras_layer_DecodeDetections2 import DecodeDetections2
 
 def build_model(image_size,
                 n_classes,
@@ -253,15 +253,19 @@ def build_model(image_size,
     ############################################################################
 
     x = Input(shape=(img_height, img_width, img_channels))
+    
+    x1 = Lambda(lambda z: z/127.5 - 1., # Convert input feature range to [-1,1]
+                     output_shape=(img_height, img_width, img_channels),
+                     name='lambda1')(x)
 
     # The following identity layer is only needed so that the subsequent lambda layers can be optional.
-    x1 = Lambda(lambda z: z, output_shape=(img_height, img_width, img_channels), name='identity_layer')(x)
-    if not (subtract_mean is None):
-        x1 = Lambda(lambda z: z - np.array(subtract_mean), output_shape=(img_height, img_width, img_channels), name='input_mean_normalization')(x1)
-    if not (divide_by_stddev is None):
-        x1 = Lambda(lambda z: z / np.array(divide_by_stddev), output_shape=(img_height, img_width, img_channels), name='input_stddev_normalization')(x1)
-    if swap_channels and (img_channels == 3):
-        x1 = Lambda(lambda z: z[...,::-1], output_shape=(img_height, img_width, img_channels), name='input_channel_swap')(x1)
+#    x1 = Lambda(lambda z: z, output_shape=(img_height, img_width, img_channels), name='identity_layer')(x)
+#    if not (subtract_mean is None):
+#        x1 = Lambda(lambda z: z - np.array(subtract_mean), output_shape=(img_height, img_width, img_channels), name='input_mean_normalization')(x1)
+#    if not (divide_by_stddev is None):
+#        x1 = Lambda(lambda z: z / np.array(divide_by_stddev), output_shape=(img_height, img_width, img_channels), name='input_stddev_normalization')(x1)
+#    if swap_channels and (img_channels == 3):
+#        x1 = Lambda(lambda z: z[...,::-1], output_shape=(img_height, img_width, img_channels), name='input_channel_swap')(x1)
 
     conv1 = Conv2D(32, (5, 5), strides=(1, 1), padding="same", kernel_initializer='he_normal', kernel_regularizer=l2(l2_reg), name='conv1')(x1)
     conv1 = BatchNormalization(axis=3, momentum=0.99, name='bn1')(conv1) # Tensorflow uses filter format [filter_height, filter_width, in_channels, out_channels], hence axis = 3
@@ -381,32 +385,32 @@ def build_model(image_size,
     # Output shape of `predictions`: (batch, n_boxes_total, n_classes + 4 + 8)
     predictions = Concatenate(axis=2, name='predictions')([classes_softmax, boxes_concat, anchors_concat])
 
-    if mode == 'training':
-        model = Model(inputs=x, outputs=predictions)
-    elif mode == 'inference':
-        decoded_predictions = DecodeDetections(confidence_thresh=confidence_thresh,
-                                               iou_threshold=iou_threshold,
-                                               top_k=top_k,
-                                               nms_max_output_size=nms_max_output_size,
-                                               coords=coords,
-                                               normalize_coords=normalize_coords,
-                                               img_height=img_height,
-                                               img_width=img_width,
-                                               name='decoded_predictions')(predictions)
-        model = Model(inputs=x, outputs=decoded_predictions)
-    elif mode == 'inference_fast':
-        decoded_predictions = DecodeDetections2(confidence_thresh=confidence_thresh,
-                                                iou_threshold=iou_threshold,
-                                                top_k=top_k,
-                                                nms_max_output_size=nms_max_output_size,
-                                                coords=coords,
-                                                normalize_coords=normalize_coords,
-                                                img_height=img_height,
-                                                img_width=img_width,
-                                                name='decoded_predictions')(predictions)
-        model = Model(inputs=x, outputs=decoded_predictions)
-    else:
-        raise ValueError("`mode` must be one of 'training', 'inference' or 'inference_fast', but received '{}'.".format(mode))
+#    if mode == 'training':
+    model = Model(inputs=x, outputs=predictions)
+#    elif mode == 'inference':
+#        decoded_predictions = DecodeDetections(confidence_thresh=confidence_thresh,
+#                                               iou_threshold=iou_threshold,
+#                                               top_k=top_k,
+#                                               nms_max_output_size=nms_max_output_size,
+#                                               coords=coords,
+#                                               normalize_coords=normalize_coords,
+#                                               img_height=img_height,
+#                                               img_width=img_width,
+#                                               name='decoded_predictions')(predictions)
+#        model = Model(inputs=x, outputs=decoded_predictions)
+#    elif mode == 'inference_fast':
+#        decoded_predictions = DecodeDetections2(confidence_thresh=confidence_thresh,
+#                                                iou_threshold=iou_threshold,
+#                                                top_k=top_k,
+#                                                nms_max_output_size=nms_max_output_size,
+#                                                coords=coords,
+#                                                normalize_coords=normalize_coords,
+#                                                img_height=img_height,
+#                                                img_width=img_width,
+#                                                name='decoded_predictions')(predictions)
+#        model = Model(inputs=x, outputs=decoded_predictions)
+#    else:
+#        raise ValueError("`mode` must be one of 'training', 'inference' or 'inference_fast', but received '{}'.".format(mode))
 
     if return_predictor_sizes:
         # Get the spatial dimensions (height, width) of the convolutional predictor layers, we need them to generate the default boxes
