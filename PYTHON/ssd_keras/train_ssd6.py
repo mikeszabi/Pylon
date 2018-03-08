@@ -1,27 +1,70 @@
-'''
-A small 7-layer Keras model with SSD architecture. Also serves as a template to build arbitrary network architectures.
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec  6 14:39:41 2017
 
-Copyright (C) 2017 Pierluigi Ferrari
+@author: fodrasz
+"""
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-
+#from keras.models import load_model
+from math import ceil
 import numpy as np
+
+from src_ssd.keras_ssd_loss import SSDLoss
+from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
+from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder
+
+
+from keras import backend as K
+from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler, EarlyStopping, ReduceLROnPlateau #TensorBoard
 from keras.models import Model
 from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization, ELU, Reshape, Concatenate, Activation
 
-from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
+
+# CALL prepare_data
+
+"""
+Parameters
+"""
+model_name = r'./models/ssd7_pylon'
+
+
+### To be optimized
+img_height = 256 # Height of the input images
+img_width = 136 # Width of the input images
+size = min(img_width, img_height)
+
+img_channels = 3 # Number of color channels of the input images
+n_classes = len(merged_classes) # Number of classes including the background class
+gray=False
+if img_channels==1:
+    gray=True
+#min_scale = 0.32 # The scaling factor for the smallest anchor boxes
+#max_scale = 0.96 # The scaling factor for the largest anchor boxes
+
+### To be optimized
+scales = [0.5, 0.7, 0.9, 1] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+
+### To be optimized
+aspect_ratios = [0.25, 0.33, 0.4]
+#w= scale*size*sqrt(aspect_ratio) - size==smaller size
+#max(img_width/(np.sqrt(aspect_ratios)*size))
+#h=scale*size/sqrt(aspect_ratio)
+#max(img_height*np.sqrt(aspect_ratios)/size)
+
+two_boxes_for_ar1 = False
+limit_boxes = False # Whether or not you want to limit the anchor boxes to lie entirely within the image boundaries
+
+### ???
+variances = [1, 1, 1, 1] # The variances by which the encoded target coordinates are scaled as in the original implementation
+coords = 'centroids' # Whether the box coordinates to be used as targets for the model should be in the 'centroids' or 'minmax' format, see documentation
+normalize_coords = True
+
+batch_size = 16 # Change the batch size if you like, or if you run into memory issues with your GPU.
+epochs = 50
+"""
+BUILD model
+"""
 
 def build_model(image_size,
                 n_classes,
@@ -121,7 +164,7 @@ def build_model(image_size,
         https://arxiv.org/abs/1512.02325v5
     '''
 
-    n_predictor_layers = 4 # The number of predictor conv layers in the network
+    n_predictor_layers = 3 # The number of predictor conv layers in the network
 
     # Get a few exceptions out of the way first
     if aspect_ratios_global is None and aspect_ratios_per_layer is None:
@@ -149,12 +192,10 @@ def build_model(image_size,
         aspect_ratios_conv4 = aspect_ratios_per_layer[0]
         aspect_ratios_conv5 = aspect_ratios_per_layer[1]
         aspect_ratios_conv6 = aspect_ratios_per_layer[2]
-        aspect_ratios_conv7 = aspect_ratios_per_layer[3]
     else:
         aspect_ratios_conv4 = aspect_ratios_global
         aspect_ratios_conv5 = aspect_ratios_global
         aspect_ratios_conv6 = aspect_ratios_global
-        aspect_ratios_conv7 = aspect_ratios_global
 
     # Compute the number of boxes to be predicted per cell for each predictor layer.
     # We need this so that we know how many channels the predictor layers need to have.
@@ -168,7 +209,6 @@ def build_model(image_size,
         n_boxes_conv4 = n_boxes[0]
         n_boxes_conv5 = n_boxes[1]
         n_boxes_conv6 = n_boxes[2]
-        n_boxes_conv7 = n_boxes[3]
     else: # If only a global aspect ratio list was passed, then the number of boxes is the same for each predictor layer
         if (1 in aspect_ratios_global) & two_boxes_for_ar1:
             n_boxes = len(aspect_ratios_global) + 1
@@ -177,7 +217,6 @@ def build_model(image_size,
         n_boxes_conv4 = n_boxes
         n_boxes_conv5 = n_boxes
         n_boxes_conv6 = n_boxes
-        n_boxes_conv7 = n_boxes
 
     # Input image format
     img_height, img_width, img_channels = image_size[0], image_size[1], image_size[2]
@@ -191,7 +230,7 @@ def build_model(image_size,
     conv1 = Conv2D(32, (5, 5), name='conv1', strides=(1, 1), padding="same")(normed)
     conv1 = BatchNormalization(axis=3, momentum=0.99, name='bn1')(conv1) # Tensorflow uses filter format [filter_height, filter_width, in_channels, out_channels], hence axis = 3
     conv1 = ELU(name='elu1')(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2), name='pool1')(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 1), name='pool1')(conv1)
 
     conv2 = Conv2D(48, (3, 3), name='conv2', strides=(1, 1), padding="same")(pool1)
     conv2 = BatchNormalization(axis=3, momentum=0.99, name='bn2')(conv2)
@@ -218,7 +257,7 @@ def build_model(image_size,
     conv6 = ELU(name='elu6')(conv6)
     pool6 = MaxPooling2D(pool_size=(2, 2), name='pool6')(conv6)
 
-    conv7 = Conv2D(32, (3, 3), name='conv7', strides=(1, 1), padding="same")(pool6)
+    conv7 = Conv2D(48, (3, 3), name='conv7', strides=(1, 1), padding="same")(pool6)
     conv7 = BatchNormalization(axis=3, momentum=0.99, name='bn7')(conv7)
     conv7 = ELU(name='elu7')(conv7)
 
@@ -237,12 +276,10 @@ def build_model(image_size,
     classes4 = Conv2D(n_boxes_conv4 * n_classes, (3, 3), strides=(1, 1), padding="valid", name='classes4')(conv4)
     classes5 = Conv2D(n_boxes_conv5 * n_classes, (3, 3), strides=(1, 1), padding="valid", name='classes5')(conv5)
     classes6 = Conv2D(n_boxes_conv6 * n_classes, (3, 3), strides=(1, 1), padding="valid", name='classes6')(conv6)
-    classes7 = Conv2D(n_boxes_conv7 * n_classes, (3, 3), strides=(1, 1), padding="valid", name='classes7')(conv7)
     # Output shape of `boxes`: `(batch, height, width, n_boxes * 4)`
     boxes4 = Conv2D(n_boxes_conv4 * 4, (3, 3), strides=(1, 1), padding="valid", name='boxes4')(conv4)
     boxes5 = Conv2D(n_boxes_conv5 * 4, (3, 3), strides=(1, 1), padding="valid", name='boxes5')(conv5)
     boxes6 = Conv2D(n_boxes_conv6 * 4, (3, 3), strides=(1, 1), padding="valid", name='boxes6')(conv6)
-    boxes7 = Conv2D(n_boxes_conv7 * 4, (3, 3), strides=(1, 1), padding="valid", name='boxes7')(conv7)
 
     # Generate the anchor boxes
     # Output shape of `anchors`: `(batch, height, width, n_boxes, 8)`
@@ -252,26 +289,21 @@ def build_model(image_size,
                            two_boxes_for_ar1=two_boxes_for_ar1, limit_boxes=limit_boxes, variances=variances, coords=coords, normalize_coords=normalize_coords, name='anchors5')(boxes5)
     anchors6 = AnchorBoxes(img_height, img_width, this_scale=scales[2], next_scale=scales[3], aspect_ratios=aspect_ratios_conv6,
                            two_boxes_for_ar1=two_boxes_for_ar1, limit_boxes=limit_boxes, variances=variances, coords=coords, normalize_coords=normalize_coords, name='anchors6')(boxes6)
-    anchors7 = AnchorBoxes(img_height, img_width, this_scale=scales[3], next_scale=scales[4], aspect_ratios=aspect_ratios_conv7,
-                           two_boxes_for_ar1=two_boxes_for_ar1, limit_boxes=limit_boxes, variances=variances, coords=coords, normalize_coords=normalize_coords, name='anchors7')(boxes7)
-
+  
     # Reshape the class predictions, yielding 3D tensors of shape `(batch, height * width * n_boxes, n_classes)`
     # We want the classes isolated in the last axis to perform softmax on them
     classes4_reshaped = Reshape((-1, n_classes), name='classes4_reshape')(classes4)
     classes5_reshaped = Reshape((-1, n_classes), name='classes5_reshape')(classes5)
     classes6_reshaped = Reshape((-1, n_classes), name='classes6_reshape')(classes6)
-    classes7_reshaped = Reshape((-1, n_classes), name='classes7_reshape')(classes7)
     # Reshape the box coordinate predictions, yielding 3D tensors of shape `(batch, height * width * n_boxes, 4)`
     # We want the four box coordinates isolated in the last axis to compute the smooth L1 loss
     boxes4_reshaped = Reshape((-1, 4), name='boxes4_reshape')(boxes4)
     boxes5_reshaped = Reshape((-1, 4), name='boxes5_reshape')(boxes5)
     boxes6_reshaped = Reshape((-1, 4), name='boxes6_reshape')(boxes6)
-    boxes7_reshaped = Reshape((-1, 4), name='boxes7_reshape')(boxes7)
     # Reshape the anchor box tensors, yielding 3D tensors of shape `(batch, height * width * n_boxes, 8)`
     anchors4_reshaped = Reshape((-1, 8), name='anchors4_reshape')(anchors4)
     anchors5_reshaped = Reshape((-1, 8), name='anchors5_reshape')(anchors5)
     anchors6_reshaped = Reshape((-1, 8), name='anchors6_reshape')(anchors6)
-    anchors7_reshaped = Reshape((-1, 8), name='anchors7_reshape')(anchors7)
 
     # Concatenate the predictions from the different layers and the assosciated anchor box tensors
     # Axis 0 (batch) and axis 2 (n_classes or 4, respectively) are identical for all layer predictions,
@@ -279,20 +311,17 @@ def build_model(image_size,
     # Output shape of `classes_merged`: (batch, n_boxes_total, n_classes)
     classes_concat = Concatenate(axis=1, name='classes_concat')([classes4_reshaped,
                                                                  classes5_reshaped,
-                                                                 classes6_reshaped,
-                                                                 classes7_reshaped])
+                                                                 classes6_reshaped])
 
     # Output shape of `boxes_final`: (batch, n_boxes_total, 4)
     boxes_concat = Concatenate(axis=1, name='boxes_concat')([boxes4_reshaped,
                                                              boxes5_reshaped,
-                                                             boxes6_reshaped,
-                                                             boxes7_reshaped])
+                                                             boxes6_reshaped])
 
     # Output shape of `anchors_final`: (batch, n_boxes_total, 8)
     anchors_concat = Concatenate(axis=1, name='anchors_concat')([anchors4_reshaped,
                                                                  anchors5_reshaped,
-                                                                 anchors6_reshaped,
-                                                                 anchors7_reshaped])
+                                                                 anchors6_reshaped])
 
     # The box coordinate predictions will go into the loss function just the way they are,
     # but for the class predictions, we'll apply a softmax activation layer first
@@ -308,7 +337,163 @@ def build_model(image_size,
     # The spatial dimensions are the same for the `classes` and `boxes` predictors
     predictor_sizes = np.array([classes4._keras_shape[1:3],
                                 classes5._keras_shape[1:3],
-                                classes6._keras_shape[1:3],
-                                classes7._keras_shape[1:3]])
+                                classes6._keras_shape[1:3]])
 
     return model, predictor_sizes
+
+
+
+"""
+CREATE MODEL
+"""
+
+
+K.clear_session() # Clear previous models from memory.
+# The output `predictor_sizes` is needed below to set up `SSDBoxEncoder`
+model, predictor_sizes = build_model(image_size=(img_height, img_width, img_channels),
+                                 n_classes=n_classes,
+                                 min_scale=None, # You could pass a min scale and max scale instead of the `scales` list, but we're not doing that here
+                                 max_scale=None,
+                                 scales=scales,
+                                 aspect_ratios_global=aspect_ratios,
+                                 aspect_ratios_per_layer=None,
+                                 two_boxes_for_ar1=two_boxes_for_ar1,
+                                 limit_boxes=limit_boxes,
+                                 variances=variances,
+                                 coords=coords,
+                                 normalize_coords=normalize_coords)
+
+#model.load_weights('./ssd7_weights.h5')
+
+"""
+Compile model
+"""
+
+# 3: Instantiate an Adam optimizer and the SSD loss function and compile the model
+
+adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=5e-04)
+
+ssd_loss = SSDLoss(neg_pos_ratio=1, n_neg_min=0, alpha=1.0)
+
+model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
+
+
+
+"""
+Create BATCH 
+"""
+
+ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
+                                img_width=img_width,
+                                n_classes=n_classes,
+                                predictor_sizes=predictor_sizes,
+                                min_scale=None,
+                                max_scale=None,
+                                scales=scales,
+                                aspect_ratios_global=aspect_ratios,
+                                aspect_ratios_per_layer=None,
+                                two_boxes_for_ar1=two_boxes_for_ar1,
+                                limit_boxes=limit_boxes,
+                                variances=variances,
+                                pos_iou_threshold=0.7, ### To be optimized
+                                neg_iou_threshold=0.3, ### To be optimized
+                                coords=coords,
+                                normalize_coords=normalize_coords)
+
+
+# 5: Set the image processing / data augmentation options and create generator handles.
+
+train_generator = train_dataset.generate(batch_size=batch_size,
+                                         train=True,
+                                         ssd_box_encoder=ssd_box_encoder,
+                                         equalize=False,
+                                         brightness=(0.75, 1.25, 0.25),
+                                         flip=False,
+                                         translate=False,
+                                         scale=False,
+                                         max_crop_and_resize=(img_height, img_width, 1, 3), # This one is important because the Pascal VOC images vary in size
+                                         full_crop_and_resize=(img_height, img_width, 1, 3,1), # This one is important because the Pascal VOC images vary in size
+                                         random_crop=False,
+                                         crop=False,
+                                         resize=False,
+                                         gray=gray,
+                                         limit_boxes=True, # While the anchor boxes are not being clipped, the ground truth boxes should be
+                                         include_thresh=0.9,
+                                         diagnostics=False)
+
+val_generator = val_dataset.generate(batch_size=batch_size,
+                                     train=True,
+                                     ssd_box_encoder=ssd_box_encoder,
+                                     equalize=False,
+                                     brightness=False,
+                                     flip=False,
+                                     translate=False,
+                                     scale=False,
+                                     max_crop_and_resize=(img_height, img_width, 1, 3), # This one is important because the Pascal VOC images vary in size
+                                     full_crop_and_resize=(img_height, img_width, 1, 3,0.5), # This one is important because the Pascal VOC images vary in size
+                                     random_crop=False,
+                                     crop=False,
+                                     resize=False,
+                                     gray=gray,
+                                     limit_boxes=True,
+                                     include_thresh=0.9,
+                                     diagnostics=False)
+
+
+
+# Get the number of samples in the training and validations datasets to compute the epoch lengths below.
+n_train_samples = train_dataset.get_n_samples()
+n_val_samples   = val_dataset.get_n_samples()
+
+# Define a learning rate schedule.
+
+def lr_schedule(epoch):
+    if epoch <= 15: return 0.001
+    else: return 0.0001
+    
+  
+
+history = model.fit_generator(generator = train_generator,
+                              steps_per_epoch = ceil(n_train_samples/batch_size),
+                              epochs = epochs,
+                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd7_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
+                                           monitor='val_loss',
+                                           verbose=1,
+                                           save_best_only=True,
+                                           save_weights_only=True,
+                                           mode='auto',
+                                           period=1),
+                                           LearningRateScheduler(lr_schedule),
+                                           EarlyStopping(monitor='val_loss',
+                                           min_delta=0.001,
+                                           patience=10),
+                                           ReduceLROnPlateau(monitor='val_loss',
+                                                             factor=0.5,
+                                                             patience=10,
+                                                             epsilon=0.001,
+                                                             cooldown=0)],
+                              validation_data = val_generator,
+                              validation_steps = ceil(n_val_samples/batch_size))
+
+# TODO: Set the filename (without the .h5 file extension!) under which to save the model and weights.
+#       Do the same in the `ModelCheckpoint` callback above.
+model.save('{}.h5'.format(model_name))
+model.save_weights('{}_weights.h5'.format(model_name))
+
+#model_json=model.to_json()
+#with open('{}.json'.format(model_name), "w") as json_file:
+#    json_file.write(model_json)
+#json_file = open('model.json', 'r')
+#loaded_model_json = json_file.read()
+#json_file.close()
+#from keras.models import model_from_json
+#
+#loaded_model = model_from_json(loaded_model_json)
+## load weights into new model
+#loaded_model.load_weights("model.h5")
+#print("Loaded model from disk")
+
+print()
+print("Model saved under {}.h5".format(model_name))
+print("Weights also saved separately under {}_weights.h5".format(model_name))
+print()
