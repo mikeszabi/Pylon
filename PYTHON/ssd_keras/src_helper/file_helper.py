@@ -7,8 +7,8 @@ Created on Fri Mar 17 20:14:54 2017
 
 import os
 import glob
-import exifread
-
+from PIL import Image
+from PIL.ExifTags import TAGS, GPSTAGS
 
 def walklevel(root_dir, level=1):
     root_dir = root_dir.rstrip(os.path.sep)
@@ -30,20 +30,25 @@ def imagelist_in_depth(image_dir,level=1):
     return image_list_indir
 
 
-
-def get_exif_data(image_file,disp=False):
+def get_exif_data(image):
     """Returns a dictionary from the exif data of an PIL Image item. Also converts the GPS Tags"""
+    exif_data = {}
+    info = image._getexif()
+    if info:
+        for tag, value in info.items():
+            decoded = TAGS.get(tag, tag)
+            if decoded == "GPSInfo":
+                gps_data = {}
+                for t in value:
+                    sub_decoded = GPSTAGS.get(t, t)
+                    gps_data[sub_decoded] = value[t]
 
-    with open(image_file, 'rb') as f:
-        exif_data = exifread.process_file(f)
-    
-    if disp:
-        for k in sorted(exif_data.keys()):
-            if k not in ['JPEGThumbnail', 'TIFFThumbnail', 'Filename', 'EXIF MakerNote']:
-                print( '%s = %s' % (k, exif_data[k]) )
-                
+                exif_data[decoded] = gps_data
+            else:
+                exif_data[decoded] = value
+
     return exif_data
-    
+
 def _get_if_exist(data, key):
     if key in data:
         return data[key]
@@ -89,4 +94,5 @@ def get_lat_lon(exif_data):
                 lon = 0 - lon
 
     return lat, lon
+
 

@@ -13,11 +13,11 @@ import cv2
 
 new_height=1152
 
-ann_name='E1'
+ann_name='E3'
 new_ann_name='pylon1152'
 
 base_dir=r'E:'
-base_dir=r'C:\Users\fodrasz'
+#base_dir=r'C:\Users\fodrasz'
 
 ann_image_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon','pylon_orig',ann_name)
 

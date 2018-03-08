@@ -23,8 +23,8 @@ val_dataset = BatchGenerator(box_output_format=['class_id', 'xmin', 'xmax', 'ymi
 # TODO: Set the paths to the datasets here.
 
 # The directories that contain the images.
-#base_dir=r'E:\\'
-base_dir=r'C:\\Users\\fodrasz\\'
+base_dir=r'E:\\'
+#base_dir=r'C:\\Users\\fodrasz\\'
 base_data_path=os.path.join(base_dir,'OneDrive','Annotation','IDB_Pylon','pylon1152_output')
 
 PYLON_images_path           = os.path.join(base_data_path,'JPEGImages')
@@ -41,11 +41,11 @@ classes = ['background',
 merge_dict = {'concretepylon':'pylon','metalpylon':'pylon','woodpylon':'pylon'}
 merged_classes=['background','pylon']
 
-train_dataset.parse_xml(images_paths=[PYLON_images_path],
-                        annotations_paths=[PYLON_annotations_path],
-                        image_set_paths=[os.path.join(base_data_path,'ImageSets','Main','concretepylon_train.txt'),
+train_dataset.parse_xml([PYLON_images_path],
+                        [os.path.join(base_data_path,'ImageSets','Main','concretepylon_train.txt'),
                                          os.path.join(base_data_path,'ImageSets','Main','metalpylon_train.txt'),
                                          os.path.join(base_data_path,'ImageSets','Main','woodpylon_train.txt')],
+                        [PYLON_annotations_path],
                         classes=merged_classes,
                         merge_dict=merge_dict,
                         include_classes='all',
@@ -54,15 +54,15 @@ train_dataset.parse_xml(images_paths=[PYLON_images_path],
                         ret=False,
                         sep=' ')
 
-val_dataset.parse_xml(images_paths=[PYLON_images_path],
-                        annotations_paths=[PYLON_annotations_path],
-                        image_set_paths=[os.path.join(base_data_path,'ImageSets','Main','concretepylon_val.txt'),
+val_dataset.parse_xml([PYLON_images_path],
+                      [os.path.join(base_data_path,'ImageSets','Main','concretepylon_val.txt'),
                                          os.path.join(base_data_path,'ImageSets','Main','metalpylon_val.txt'),
                                          os.path.join(base_data_path,'ImageSets','Main','woodpylon_val.txt')],
-                        classes=merged_classes,
-                        merge_dict=merge_dict,
-                        include_classes='all',
-                        exclude_truncated=False,
-                        exclude_difficult=False,
-                        ret=False,
-                        sep=' ')
+                      [PYLON_annotations_path],
+                      classes=merged_classes,
+                      merge_dict=merge_dict,
+                      include_classes='all',
+                      exclude_truncated=False,
+                      exclude_difficult=False,
+                      ret=False,
+                      sep=' ')
