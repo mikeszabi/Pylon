@@ -26,7 +26,7 @@ from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization
 """
 Parameters
 """
-model_name = r'./models/ssd7_pylon'
+model_name = r'./models/ssd6_gray_pylon'
 
 
 ### To be optimized
@@ -34,7 +34,7 @@ img_height = 256 # Height of the input images
 img_width = 136 # Width of the input images
 size = min(img_width, img_height)
 
-img_channels = 3 # Number of color channels of the input images
+img_channels = 1 # Number of color channels of the input images
 n_classes = len(merged_classes) # Number of classes including the background class
 gray=False
 if img_channels==1:

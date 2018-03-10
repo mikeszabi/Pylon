@@ -19,7 +19,7 @@ crop_mode='left' # left, right, middle
 """
 init
 """
-model_file=r'./models/ssd7_pylon.h5'
+model_file=r'./models/ssd6_gray_pylon.h5'
 roid = oroid.ssd_detection(model_file=model_file,normalize_coords=normalize_coords)
 
 imp=oroid.image_prepare(new_height = roid.im_height, new_width = roid.im_width, dx_roi_pct=25, crop_mode=crop_mode)
@@ -37,7 +37,7 @@ read
 #base_dir=r'E:\\'
 base_dir=r'C:\\Users\\fodrasz\\'
 
-video_stream=os.path.join(base_dir,'OneDrive\Annotation\Videos\VB_long.m4v')
+video_stream=os.path.join(base_dir,'OneDrive\Annotation\Videos\VB_short.mp4')
 
 #cap = cv2.VideoCapture(video_stream)
 #cap.get(cv2.CAP_PROP_FRAME_COUNT)
@@ -72,27 +72,27 @@ while(cap.isOpened()):
         frame=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 
         imp.im=frame.copy()
-        im_crop=imp.resize_crop_image()
-
-        roi_box=roid.detect_roi(im_crop)
+        imp.resize_crop_image()
         
-      
-#        cv2.imshow('frame',im_square[0,:,:,:])
-#        cv2.waitKey(0)
         """
         PREDICT
         """
-        
+
         t=time.time()
-        roi_box=roid.detect_roi(im_crop,confidence_thresh=0.5, iou_threshold=0)
+        if  roid.im_channels==1:
+            im_in=cv2.cvtColor(imp.im_crop,cv2.COLOR_RGB2GRAY)
+            im_in=np.expand_dims(im_in, axis=2)
+        else:
+            im_in=imp.im_crop
+        roi_box=roid.detect_roi(im_in)
 
         
         print(time.time()-t)
         
-        frame_out=im_crop.copy()
-        if  roid.im_channels==1:
-            frame_out=cv2.cvtColor(frame_out,cv2.COLOR_GRAY2RGB)
-            
+        frame_out=imp.im_crop.copy()
+#        if  roid.im_channels==1:
+#            frame_out=cv2.cvtColor(frame_out,cv2.COLOR_GRAY2RGB)
+#            
         for box in roi_box[0]:
             print('yes')
             label = '{}: {:.2f}'.format(merged_classes[int(box[0])], box[1])

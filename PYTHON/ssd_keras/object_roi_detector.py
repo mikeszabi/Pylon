@@ -64,7 +64,7 @@ class image_prepare:
         if im_0 is None:
             print('Image file could not be read')
             return None
-        if im_0.ndim==1:
+        if im_0.ndim==2:
             im_0=np.expand_dims(self.im, axis=2)
         elif not im_0.ndim==3:
             print('Wrong image format')
@@ -193,7 +193,6 @@ class ssd_detection:
         assert type(im)==np.ndarray, "Image is Not numpy array"
         assert im.shape[0]==self.im_height, "Image has wrong height"
         assert im.shape[1]==self.im_width, "Image has wrong width"
-        assert im.ndim==3, "Image has wrong number of channels"
 
         im=np.expand_dims(im, axis=0) # first singleton dimension is needed as model input        
             
