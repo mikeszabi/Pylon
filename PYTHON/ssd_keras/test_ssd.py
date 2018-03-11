@@ -26,7 +26,7 @@ predict_generator = val_dataset.generate(batch_size=1,
                                          train=False,
                                          equalize=False,
                                          brightness=False,
-                                         flip=False,
+                                         flip=True,
                                          translate=False,
                                          scale=False,
                                          max_crop_and_resize=(img_height, img_width, 1, 3),
@@ -71,6 +71,8 @@ print(elapsed)
 np.set_printoptions(precision=2, suppress=True, linewidth=90)
 print("Predicted boxes:\n")
 print(y_pred_decoded[i])
+
+# SHOW figure
 
 plt.figure(figsize=(20,12))
 plt.imshow(np.squeeze(X[i]),cmap='gray')

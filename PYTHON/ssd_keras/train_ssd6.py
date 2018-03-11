@@ -26,7 +26,7 @@ from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization
 """
 Parameters
 """
-model_name = r'./models/ssd6_gray_pylon'
+model_name = r'./models/ssd6_pylon'
 
 
 ### To be optimized
@@ -34,7 +34,8 @@ img_height = 256 # Height of the input images
 img_width = 136 # Width of the input images
 size = min(img_width, img_height)
 
-img_channels = 1 # Number of color channels of the input images
+img_channels = 3 # Number of color channels of the input images
+
 n_classes = len(merged_classes) # Number of classes including the background class
 gray=False
 if img_channels==1:
@@ -43,7 +44,7 @@ if img_channels==1:
 #max_scale = 0.96 # The scaling factor for the largest anchor boxes
 
 ### To be optimized
-scales = [0.5, 0.7, 0.9, 1] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+scales = [0.4, 0.6, 0.8, 1] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
 
 ### To be optimized
 aspect_ratios = [0.25, 0.33, 0.4]
@@ -408,7 +409,7 @@ train_generator = train_dataset.generate(batch_size=batch_size,
                                          ssd_box_encoder=ssd_box_encoder,
                                          equalize=False,
                                          brightness=(0.75, 1.25, 0.25),
-                                         flip=False,
+                                         flip=True,
                                          translate=False,
                                          scale=False,
                                          max_crop_and_resize=(img_height, img_width, 1, 3), # This one is important because the Pascal VOC images vary in size
@@ -456,7 +457,7 @@ def lr_schedule(epoch):
 history = model.fit_generator(generator = train_generator,
                               steps_per_epoch = ceil(n_train_samples/batch_size),
                               epochs = epochs,
-                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd7_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
+                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
                                            monitor='val_loss',
                                            verbose=1,
                                            save_best_only=True,
@@ -466,10 +467,10 @@ history = model.fit_generator(generator = train_generator,
                                            LearningRateScheduler(lr_schedule),
                                            EarlyStopping(monitor='val_loss',
                                            min_delta=0.001,
-                                           patience=10),
+                                           patience=5),
                                            ReduceLROnPlateau(monitor='val_loss',
                                                              factor=0.5,
-                                                             patience=10,
+                                                             patience=5,
                                                              epsilon=0.001,
                                                              cooldown=0)],
                               validation_data = val_generator,

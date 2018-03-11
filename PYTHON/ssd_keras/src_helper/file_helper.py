@@ -22,7 +22,7 @@ def walklevel(root_dir, level=1):
             
 def imagelist_in_depth(image_dir,level=1):
     image_list_indir=[]
-    included_extenstions = ['*.jpg', '*jpeg','*.bmp', '*.png', '*.gif']
+    included_extenstions = ['*.jpg', '*jpeg','*.bmp', '*.png', '*.gif','*.ppm']
     image_list_indir = []
     for root, dirs, files in walklevel(image_dir, level=level):
         for ext in included_extenstions:
@@ -90,3 +90,12 @@ def get_lat_lon(exif_data):
 
     return lat, lon
 
+def check_folder(folder='.',create=True):
+    if os.path.exists(folder):
+        return True
+    else:
+        if create:
+            os.makedirs(folder)
+            return True
+        else:
+            return False

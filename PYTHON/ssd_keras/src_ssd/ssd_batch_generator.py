@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import numpy as np
 import cv2
 import random
+from tqdm import tqdm
 from sklearn.utils import shuffle
 from copy import deepcopy
 from PIL import Image
@@ -253,9 +254,11 @@ class BatchGenerator:
             # Parse the image set that so that we know all the IDs of all the images to be included in the dataset
             with open(image_set_path) as f:
                 image_ids = [line.strip().split(sep)[0] for line in f] # ToDo: jpg as parameter
+                # csv is separated with sep
+                # second column is not used!, only image id-s are selected
 
             # Parse the labels for each image ID from its respective XML file
-            for image_id in image_ids:
+            for image_id in tqdm(image_ids, desc=os.path.basename(image_set_path)):
                 if image_id:
                     # Open the XML file for this image
                     with open(os.path.join(annotations_path, image_id+'.xml')) as f:
@@ -268,40 +271,46 @@ class BatchGenerator:
                     objects = soup.find_all('object') # Get a list of all objects in this image
     
                     if len(objects)>0:
-                        self.filenames.append(full_filename)
                         # Parse the data for each object
+                        found_class_obj=False
                         for obj in objects:
-                            class_name = merge_dict[obj.find('name').text]
-                            class_id = self.classes.index(class_name)
-                            # Check if this class is supposed to be included in the dataset
-                            if (not self.include_classes == 'all') and (not class_id in self.include_classes): continue
-        #                    pose = obj.pose.text
-        #                    truncated = int(obj.truncated.text)
-        #                    if exclude_truncated and (truncated ==1): continue
-        #                    difficult = int(obj.difficult.text)
-        #                    if exclude_difficult and (difficult == 1): continue
-                            xmin = int(obj.bndbox.xmin.text)
-                            ymin = int(obj.bndbox.ymin.text)
-                            xmax = int(obj.bndbox.xmax.text)
-                            ymax = int(obj.bndbox.ymax.text)
-                            item_dict = {'folder': folder,
-                                         'image_name': full_filename,
-                                         'image_id': image_id,
-                                         'class_name': class_name,
-                                         'class_id': class_id,
-        #                                 'pose': pose,
-        #                                 'truncated': truncated,
-        #                                 'difficult': difficult,
-                                         'xmin': xmin,
-                                         'ymin': ymin,
-                                         'xmax': xmax,
-                                         'ymax': ymax}
-                            box = []
-                            for item in self.box_output_format:
-                                box.append(item_dict[item])
-                            boxes.append(box)
-    
-                        self.labels.append(boxes)
+                            obj_name=obj.find('name').text
+                            if obj_name in list(merge_dict.keys()):
+                                found_class_obj=True
+                                class_name = merge_dict[obj.find('name').text]
+                                class_id = self.classes.index(class_name)
+                                # Check if this class is supposed to be included in the dataset
+                                if (not self.include_classes == 'all') and (not class_id in self.include_classes): continue
+            #                    pose = obj.pose.text
+            #                    truncated = int(obj.truncated.text)
+            #                    if exclude_truncated and (truncated ==1): continue
+            #                    difficult = int(obj.difficult.text)
+            #                    if exclude_difficult and (difficult == 1): continue
+                                xmin = int(obj.bndbox.xmin.text)
+                                ymin = int(obj.bndbox.ymin.text)
+                                xmax = int(obj.bndbox.xmax.text)
+                                ymax = int(obj.bndbox.ymax.text)
+                                item_dict = {'folder': folder,
+                                             'image_name': full_filename,
+                                             'image_id': image_id,
+                                             'class_name': class_name,
+                                             'class_id': class_id,
+            #                                 'pose': pose,
+            #                                 'truncated': truncated,
+            #                                 'difficult': difficult,
+                                             'xmin': xmin,
+                                             'ymin': ymin,
+                                             'xmax': xmax,
+                                             'ymax': ymax}
+                                box = []
+                                for item in self.box_output_format:
+                                    box.append(item_dict[item])
+                                boxes.append(box)
+                        if found_class_obj:
+                            self.filenames.append(full_filename)        
+                            self.labels.append(boxes)
+                    else:
+                        print('No object on image: {0}'.format(full_filename))
 
         if ret:
             return self.filenames, self.labels
@@ -489,7 +498,6 @@ class BatchGenerator:
             batch_items_to_remove = [] # In case we need to remove any images from the batch because of failed random cropping, store their indices in this list
 
             for i in range(len(batch_X)):
-                
                 img_height, img_width, ch = batch_X[i].shape
                 batch_y[i] = np.array(batch_y[i]) # Convert labels into an array (in case it isn't one already), otherwise the indexing below breaks
 
@@ -509,8 +517,9 @@ class BatchGenerator:
                     p = np.random.uniform(0,1)
                     if p >= (1-flip):
                         batch_X[i] = _flip(batch_X[i])
-                        batch_y[i][:,[xmin,xmax]] = img_width - batch_y[i][:,[xmax,xmin]] # xmin and xmax are swapped when mirrored
-
+                        if not ((batch_y is None) or (len(batch_y[i]) == 0)):
+                            batch_y[i][:,[xmin,xmax]] = img_width - batch_y[i][:,[xmax,xmin]] # xmin and xmax are swapped when mirrored
+                            
                 if translate:
                     p = np.random.uniform(0,1)
                     if p >= (1-translate[2]):

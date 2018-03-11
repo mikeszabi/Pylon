@@ -19,7 +19,7 @@ crop_mode='left' # left, right, middle
 """
 init
 """
-model_file=r'./models/ssd6_gray_pylon.h5'
+model_file=r'./models/ssd6_pylon.h5'
 roid = oroid.ssd_detection(model_file=model_file,normalize_coords=normalize_coords)
 
 imp=oroid.image_prepare(new_height = roid.im_height, new_width = roid.im_width, dx_roi_pct=25, crop_mode=crop_mode)
@@ -61,8 +61,8 @@ write
 cap = cv2.VideoCapture(video_stream)
 fps=cap.get(cv2.CAP_PROP_FPS)
 # Define the codec and create VideoWriter object
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter('output.avi',fourcc, fps, ( roid.im_height,roid.im_width))
+fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+out = cv2.VideoWriter('output.avi',fourcc, fps, ( roid.im_width, roid.im_height),True)
 
 
 
@@ -70,7 +70,6 @@ while(cap.isOpened()):
     ret, frame = cap.read()
     if ret==True:
         frame=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
-
         imp.im=frame.copy()
         imp.resize_crop_image()
         
@@ -79,12 +78,8 @@ while(cap.isOpened()):
         """
 
         t=time.time()
-        if  roid.im_channels==1:
-            im_in=cv2.cvtColor(imp.im_crop,cv2.COLOR_RGB2GRAY)
-            im_in=np.expand_dims(im_in, axis=2)
-        else:
-            im_in=imp.im_crop
-        roi_box=roid.detect_roi(im_in)
+
+        roi_box=roid.detect_roi(imp.im_crop)
 
         
         print(time.time()-t)
@@ -107,9 +102,11 @@ while(cap.isOpened()):
 #            cv2.waitKey(0)
         # write the flipped frame
         frame_out=cv2.cvtColor(frame_out,cv2.COLOR_RGB2BGR)
+
         out.write(frame_out)
 
         cv2.imshow('frame',frame_out)
+        cv2.waitKey(1)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     else:

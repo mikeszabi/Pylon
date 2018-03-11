@@ -69,10 +69,6 @@ imp.convert_image_from_buffer(bbb)
 imp.resize_crop_image()
 
 
-if  roid.im_channels==1:
-    im_in=cv2.cvtColor(imp.im_crop,cv2.COLOR_RGB2GRAY)
-else:
-    im_in=imp.im_crop
 
 roi_box=roid.detect_roi(imp.im_crop,confidence_thresh=0.01, iou_threshold=0.45)
 

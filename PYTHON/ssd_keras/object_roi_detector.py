@@ -194,6 +194,11 @@ class ssd_detection:
         assert im.shape[0]==self.im_height, "Image has wrong height"
         assert im.shape[1]==self.im_width, "Image has wrong width"
 
+        # if gray model
+        if  self.im_channels==1:
+            im=cv2.cvtColor(im,cv2.COLOR_RGB2GRAY)
+            im=np.expand_dims(im, axis=2)
+        
         im=np.expand_dims(im, axis=0) # first singleton dimension is needed as model input        
             
         y_pred = self.model.predict(im)
