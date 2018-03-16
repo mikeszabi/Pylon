@@ -5,21 +5,21 @@ Created on Wed Dec  6 14:39:41 2017
 @author: fodrasz
 """
 
+
 #from keras.models import load_model
 from math import ceil
-import numpy as np
+#import numpy as np
 
 from src_ssd.keras_ssd_loss import SSDLoss
-from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
+#from src_ssd.keras_layer_AnchorBoxes import AnchorBoxes
 from src_ssd.ssd_box_encode_decode_utils import SSDBoxEncoder
-from src_ssd.keras_ssd6 import build_model
-
+from src_ssd.keras_ssd7 import build_model
 
 from keras import backend as K
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, EarlyStopping, ReduceLROnPlateau #TensorBoard
-from keras.models import Model
-from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization, ELU, Reshape, Concatenate, Activation
+#from keras.models import Model
+#from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization, ELU, Reshape, Concatenate, Activation
 
 
 # CALL prepare_data
@@ -27,16 +27,16 @@ from keras.layers import Input, Lambda, Conv2D, MaxPooling2D, BatchNormalization
 """
 Parameters
 """
-model_name = r'./models/ssd6_pylon'
+model_name = r'./models/ssd7_pylon'
 
 
 ### To be optimized
-img_height = 256 # Height of the input images
-img_width = 136 # Width of the input images
+img_height = 512 # Height of the input images
+img_width = 272 # Width of the input images
 size = min(img_width, img_height)
+crop_lower_pct=0.5
 
 img_channels = 3 # Number of color channels of the input images
-
 n_classes = len(merged_classes) # Number of classes including the background class
 gray=False
 if img_channels==1:
@@ -45,10 +45,10 @@ if img_channels==1:
 #max_scale = 0.96 # The scaling factor for the largest anchor boxes
 
 ### To be optimized
-scales = [0.4, 0.6, 0.8, 1] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
+scales = [0.1, 0.2, 0.25, 0.3, 0.4] # An explicit list of anchor box scaling factors. If this is passed, it will override `min_scale` and `max_scale`.
 
 ### To be optimized
-aspect_ratios = [0.25, 0.33, 0.4]
+aspect_ratios = [1, 1.5, 2, 2.5]
 #w= scale*size*sqrt(aspect_ratio) - size==smaller size
 #max(img_width/(np.sqrt(aspect_ratios)*size))
 #h=scale*size/sqrt(aspect_ratio)
@@ -64,10 +64,6 @@ normalize_coords = True
 
 batch_size = 16 # Change the batch size if you like, or if you run into memory issues with your GPU.
 epochs = 50
-"""
-BUILD model
-"""
-
 
 
 """
@@ -77,7 +73,7 @@ CREATE MODEL
 
 K.clear_session() # Clear previous models from memory.
 # The output `predictor_sizes` is needed below to set up `SSDBoxEncoder`
-model, predictor_sizes = build_model(image_size=(img_height, img_width, img_channels),
+model, predictor_sizes = build_model(image_size=(int(img_height*crop_lower_pct), img_width, img_channels),
                                  n_classes=n_classes,
                                  min_scale=None, # You could pass a min scale and max scale instead of the `scales` list, but we're not doing that here
                                  max_scale=None,
@@ -110,7 +106,7 @@ model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
 Create BATCH 
 """
 
-ssd_box_encoder = SSDBoxEncoder(img_height=img_height,
+ssd_box_encoder = SSDBoxEncoder(img_height=int(img_height*crop_lower_pct),
                                 img_width=img_width,
                                 n_classes=n_classes,
                                 predictor_sizes=predictor_sizes,
@@ -135,14 +131,14 @@ train_generator = train_dataset.generate(batch_size=batch_size,
                                          ssd_box_encoder=ssd_box_encoder,
                                          equalize=False,
                                          brightness=(0.75, 1.25, 0.25),
-                                         flip=True,
+                                         flip=False,
                                          translate=False,
                                          scale=False,
                                          max_crop_and_resize=(img_height, img_width, 1, 3), # This one is important because the Pascal VOC images vary in size
                                          random_pad_and_resize=(img_height, img_width, 1, 3,1), # This one is important because the Pascal VOC images vary in size
                                          random_crop=False,
-                                         crop=False,
                                          resize=False,
+                                         crop=(0,int(crop_lower_pct*img_height),0,0),
                                          gray=gray,
                                          limit_boxes=True, # While the anchor boxes are not being clipped, the ground truth boxes should be
                                          include_thresh=0.9,
@@ -157,9 +153,9 @@ val_generator = val_dataset.generate(batch_size=batch_size,
                                      translate=False,
                                      scale=False,
                                      max_crop_and_resize=(img_height, img_width, 1, 3), # This one is important because the Pascal VOC images vary in size
-                                     random_pad_and_resize=(img_height, img_width, 1, 3,0.5), # This one is important because the Pascal VOC images vary in size
+                                     random_pad_and_resize=(img_height, img_width, 1, 3,1), # This one is important because the Pascal VOC images vary in size
                                      random_crop=False,
-                                     crop=False,
+                                     crop=(0,int(crop_lower_pct*img_height),0,0),
                                      resize=False,
                                      gray=gray,
                                      limit_boxes=True,
@@ -183,7 +179,7 @@ def lr_schedule(epoch):
 history = model.fit_generator(generator = train_generator,
                               steps_per_epoch = ceil(n_train_samples/batch_size),
                               epochs = epochs,
-                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
+                              callbacks = [ModelCheckpoint(r'./checkpoints/ssd7_weights_epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5',
                                            monitor='val_loss',
                                            verbose=1,
                                            save_best_only=True,

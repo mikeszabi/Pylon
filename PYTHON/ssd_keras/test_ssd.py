@@ -17,10 +17,10 @@ from src_ssd.ssd_box_encode_decode_utils import decode_y2
 
 # 1: Set the generator
 
-img_height=256
-img_width=136
+img_height=512
+img_width=272
 gray=False
-
+crop_lower_pct=0.5
 
 predict_generator = val_dataset.generate(batch_size=1,
                                          train=False,
@@ -30,12 +30,12 @@ predict_generator = val_dataset.generate(batch_size=1,
                                          translate=False,
                                          scale=False,
                                          max_crop_and_resize=(img_height, img_width, 1, 3),
-                                         full_crop_and_resize=(img_height, img_width, 1, 3, 1),
+                                         random_pad_and_resize=(img_height, img_width, 1, 3, 1),
                                          random_crop=False,
-                                         crop=False,
+                                         crop=(0,int(crop_lower_pct*img_height),0,0),
                                          resize=False,
                                          gray=gray,
-                                         limit_boxes=gray,
+                                         limit_boxes=True,
                                          include_thresh=0.8,
                                          diagnostics=False)
 

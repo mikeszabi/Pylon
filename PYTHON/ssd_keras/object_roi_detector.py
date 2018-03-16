@@ -29,7 +29,7 @@ def write_to_buffer(buffer_file,im):
     im.astype('uint8').tofile(buffer_file)
 
 class image_prepare:
-    def __init__(self,new_height = 512, new_width=272, dx_roi_pct=20, crop_mode='middle', preserved_bytes=0):
+    def __init__(self,new_height = 512, new_width=272, dx_roi_pct=20, crop_mode='middle', crop_lower_pct=0, preserved_bytes=0):
         self.im=None # original image
         self.scale=None # resize scale
         self.im_crop=None # small square image - input of detection model
@@ -39,6 +39,7 @@ class image_prepare:
         self.new_height=new_height
         self.new_width=new_width
         self.crop_mode=crop_mode
+        self.crop_lower_pct=crop_lower_pct
         self.dx_roi_crop=int(dx_roi_pct*self.new_width/100) # fix width of the roi as the pct of the width
         
         # This class stores the original and resized/cropped images and the roi coordinates 
@@ -90,14 +91,14 @@ class image_prepare:
         im_resized = cv2.resize(self.im, dim, interpolation = cv2.INTER_AREA)
         
     
-        self.im_cropped=np.zeros((self.new_height,self.new_width,self.im.ndim),'uint8')                 
+        self.im_pad=np.zeros((self.new_height,self.new_width,self.im.ndim),'uint8')                 
         
         # ToDo: save crop dimensions
             
         if image_aspect_ratio < self.new_width/self.new_height:
             # portrait type
             self.x0_crop=-int(self.new_width/2-dim[0]/2)
-            self.im_crop[:,int(self.new_width/2-dim[0]/2):int(self.new_width/2+dim[1]/2),:]=im_resized
+            self.im_pad[:,int(self.new_width/2-dim[0]/2):int(self.new_width/2+dim[1]/2),:]=im_resized
         else:
             if self.crop_mode=='middle':
                 self.x0_crop=int(dim[0]/2-self.new_width/2)
@@ -106,9 +107,12 @@ class image_prepare:
             elif self.crop_mode=='right':
                 self.x0_crop=dim[0]-self.new_width
             
-            self.im_crop=im_resized[:,self.x0_crop:self.new_width+self.x0_crop,:]
-
-        return self.im_crop
+            self.im_pad=im_resized[:,self.x0_crop:self.new_width+self.x0_crop,:]
+        
+        # cropping lower part
+        self.im_crop=self.im_pad[0:int(1-self.crop_lower_pct*self.im_pad.shape[0])-1,:,:]
+        
+#        return self.im_crop, self.im_pad
 
     def calc_roi_coords(self,roi_coords):
         
@@ -250,17 +254,18 @@ if __name__ == "__main__":
 
     image_file=r'e:\OneDrive\Annotation\Picturio\TEST\concrete_1.jpg'
 
-    imp=image_prepare(new_height = 272, dx_roi_pct=25, crop_mode='middle')
+    imp=image_prepare(new_height = 272, dx_roi_pct=25, crop_mode='middle', crop_lower_pct=0)
     
  
     im=imp.load_image(image_file)
     if im is not None:
-        im_square=imp.resize_square_image()
+        im_crop=imp.resize_crop_image()
+    
     
 #        name, ext=image_file.split('.')
 #        scipy.misc.imsave(name+'_small.'+ext, im_square)
 
-    roi_box=roid.detect_roi(im_square)
+    roi_box=roid.detect_roi(im_crop)
     
 #    np.set_printoptions(precision=2, suppress=True, linewidth=90)
 #    print("Predicted boxes:\n")
@@ -268,17 +273,9 @@ if __name__ == "__main__":
 #    
 #    fig, ax = plt.subplots(1,2)
 #    #plt.figure(figsize=(20,12))
-#    ax[0].imshow(im_square)
+#    ax[0].imshow(im_crop)
 #    
 #    for box in roi_box[0]:
 #        ax[0].add_patch(plt.Rectangle((box[2], box[4]), box[3]-box[2], box[5]-box[4], color='blue', fill=False, linewidth=2))  
 #    
-    if len(roi_box[0])==1:
-        
-        x_roi_start_square=roi_box[0][0][2]
-        
-        x_roi_start=imp.calc_roi_stripe(x_roi_start_square)
-        
-#        im_roi=imp.crop_roi_stripe(x_roi_start)
-        
-#        ax[1].imshow(im_roi)
+

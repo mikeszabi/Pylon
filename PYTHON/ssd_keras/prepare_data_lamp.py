@@ -40,9 +40,8 @@ PYLON_images_path           = os.path.join(base_data_path,'JPEGImages')
 PYLON_annotations_path      = os.path.join(base_data_path,'Annotations')
 
 # The XML parser needs to now what object class names to look for and in which order to map them to integers.
-classes = ['background',
-           'concretepylon', 'metalpylon', 'woodpylon','lamppost']
-merge_dict = {'concretepylon':'pylon','metalpylon':'pylon','woodpylon':'pylon','lamppost':'pylon'}
+classes = ['background','lamp']
+merge_dict = {'lamp':'lamp'}
 
 #
 #classes = ['background',

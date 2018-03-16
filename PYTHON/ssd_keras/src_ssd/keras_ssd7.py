@@ -218,7 +218,7 @@ def build_model(image_size,
     conv6 = ELU(name='elu6')(conv6)
     pool6 = MaxPooling2D(pool_size=(2, 2), name='pool6')(conv6)
 
-    conv7 = Conv2D(32, (3, 3), name='conv7', strides=(1, 1), padding="same")(pool6)
+    conv7 = Conv2D(48, (3, 3), name='conv7', strides=(1, 1), padding="same")(pool6)
     conv7 = BatchNormalization(axis=3, momentum=0.99, name='bn7')(conv7)
     conv7 = ELU(name='elu7')(conv7)
 

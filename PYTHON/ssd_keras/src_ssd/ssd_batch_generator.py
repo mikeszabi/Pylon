@@ -336,19 +336,23 @@ class BatchGenerator:
                  batch_size=32,
                  train=True,
                  ssd_box_encoder=None,
+                 convert_to_3_channels=False,
                  equalize=False,
                  brightness=False,
                  flip=False,
                  translate=False,
                  scale=False,
                  max_crop_and_resize=False,
-                 full_crop_and_resize=False,
+                 random_pad_and_resize=False,
                  random_crop=False,
                  crop=False,
                  resize=False,
                  gray=False,
                  limit_boxes=True,
                  include_thresh=0.3,
+                 subtract_mean=None,
+                 divide_by_stddev=None,
+                 swap_channels=False,
                  diagnostics=False):
         '''
         Generate batches of samples and corresponding labels indefinitely from
@@ -404,12 +408,14 @@ class BatchGenerator:
                 and fixed aspect ratio from the input image and then resizes the patch, while `random_crop` crops patches of fixed
                 size and fixed aspect ratio from the input image. If this operation is active, it overrides both
                 `random_crop` and `resize`.
-            full_crop_and_resize (tuple, optional): `False` or a tuple of four integers and one float,
-                `(height, width, min_1_object, max_#_trials, mix_ratio)`. This will generate a patch of size `(height, width)`
-                that always contains the full input image. The latter third and fourth components of the tuple work identically as
-                in `random_crop`. `mix_ratio` is only relevant if `max_crop_and_resize` is active, in which case it must be a float in
-                `[0, 1]` that decides what ratio of images will be processed using `max_crop_and_resize` and what ratio of images
-                will be processed using `full_crop_and_resize`. If `mix_ratio` is 1, all images will be processed using `full_crop_and_resize`.
+            random_pad_and_resize (tuple, optional): `False` or a tuple of four integers and one float,
+                `(height, width, min_1_object, max_#_trials, mix_ratio)`. The input image will first be padded with zeros such that
+                it has the aspect ratio defined by `height` and `width` and afterwards resized to `(height, width)`. This preserves
+                the aspect ratio of the original image an scales it to the maximum possible size that still fits inside a canvas of
+                size `(height, width)`. The third and fourth components of the tuple work identically as in `random_crop`.
+                `mix_ratio` is only relevant if `max_crop_and_resize` is active, in which case it must be a float in `[0, 1]` that
+                decides what ratio of images will be processed using `max_crop_and_resize` and what ratio of images will be processed
+                using `random_pad_and_resize`. If `mix_ratio` is 1, all images will be processed using `random_pad_and_resize`.
                 Note the difference to `max_crop_and_resize`: While `max_crop_and_resize` will crop out the largest possible patch
                 that still lies fully within the input image, the patch generated here will always contain the full input image.
                 If this operation is active, it overrides both `random_crop` and `resize`.
@@ -423,9 +429,9 @@ class BatchGenerator:
                 of attempts to get a valid crop. If no valid crop was obtained within this maximum number of attempts,
                 the respective image will be removed from the batch without replacement (i.e. for each removed image, the batch
                 will be one sample smaller). Defaults to `False`.
-            crop (tuple, optional): `False` or a tuple of four integers, `(crop_top, crop_bottom, crop_left, crop_right)`,
-                with the number of pixels to crop off of each side of the images.
-                The targets are adjusted accordingly. Note: Cropping happens before resizing.
+            crop (tuple, optional): `False` or a tuple of four floats, `(crop_top, crop_bottom, crop_left, crop_right)`,
+                with the fraction of height and width to crop off of each side of the images.
+                The targets are adjusted accordingly. Note: Cropping happens after resizing.
             resize (tuple, optional): `False` or a tuple of 2 integers for the desired output
                 size of the images in pixels. The expected format is `(height, width)`.
                 The box coordinates are adjusted accordingly. Note: Resizing happens after cropping.
@@ -441,6 +447,18 @@ class BatchGenerator:
                 to still be included in the batch data. If set to 0, all boxes are kept except those which lie
                 entirely outside of the image bounderies after limiting. If set to 1, only boxes that did not
                 need to be limited at all are kept. Defaults to 0.3.
+            subtract_mean (array-like, optional): `None` or an array-like object of integers or floating point values
+                of any shape that is broadcast-compatible with the image shape. The elements of this array will be
+                subtracted from the image pixel intensity values. For example, pass a list of three integers
+                to perform per-channel mean normalization for color images.
+            divide_by_stddev (array-like, optional): `None` or an array-like object of non-zero integers or
+                floating point values of any shape that is broadcast-compatible with the image shape. The image pixel
+                intensity values will be divided by the elements of this array. For example, pass a list
+                of three integers to perform per-channel standard deviation normalization for color images.
+            swap_channels (bool, optional): If `True` the color channel order of the input images will be reversed,
+                i.e. if the input color channel order is RGB, the color channels will be swapped to BGR.
+            convert_to_3_channels (bool, optional): If `True`, single-channel images will be converted
+                to 3-channel images.
             diagnostics (bool, optional): If `True`, yields three additional output items:
                 1) A list of the image file names in the batch.
                 2) An array with the original, unaltered images.
@@ -501,6 +519,14 @@ class BatchGenerator:
                 img_height, img_width, ch = batch_X[i].shape
                 batch_y[i] = np.array(batch_y[i]) # Convert labels into an array (in case it isn't one already), otherwise the indexing below breaks
 
+                if (batch_X[i].ndim == 2):
+                    if convert_to_3_channels:
+                        # Convert the 1-channel image into a 3-channel image.
+                        batch_X[i] = np.stack([batch_X[i]] * 3, axis=-1)
+                    else:
+                        # batch_X[i].ndim must always be 3, even for single-channel images.
+                        batch_X[i] = np.expand_dims(batch_X[i], axis=-1)
+                
                 if equalize:
                     batch_X[i] = histogram_eq(batch_X[i])
 
@@ -582,10 +608,9 @@ class BatchGenerator:
                             else: batch_y[i] = batch_y[i][after_area >= include_thresh * before_area] # Especially for the case `include_thresh == 1` we want the ">=" sign, otherwise no boxes would be left at all
 
             
-
+                image_aspect_ratio = img_width / img_height
                 if max_crop_and_resize:
                     # The ratio of the two aspect ratios (source image and target size) determines the maximal possible crop.
-                    image_aspect_ratio = img_width / img_height
                     resize_aspect_ratio = max_crop_and_resize[1] / max_crop_and_resize[0]
 
                     if image_aspect_ratio < resize_aspect_ratio:
@@ -599,16 +624,17 @@ class BatchGenerator:
                     random_crop = (crop_height, crop_width, max_crop_and_resize[2], max_crop_and_resize[3])
                     resize = (max_crop_and_resize[0], max_crop_and_resize[1])
 
-                if full_crop_and_resize:
+                if random_pad_and_resize:
+                    # takes effect when image is narrower than desired aspect ratio
 
-                    resize_aspect_ratio = full_crop_and_resize[1] / full_crop_and_resize[0]
+                    resize_aspect_ratio = random_pad_and_resize[1] / random_pad_and_resize[0]
 
-                    if img_width < img_height:
+                    if image_aspect_ratio < resize_aspect_ratio:  # use full crop if original is narrower
                         crop_height = img_height
                         crop_width = int(round(crop_height * resize_aspect_ratio))
                         # full crop only when image orientation is PORTRAIT - PYLON specific
-                        random_crop = (crop_height, crop_width, full_crop_and_resize[2], full_crop_and_resize[3])
-                        resize = (full_crop_and_resize[0], full_crop_and_resize[1])
+                        random_crop = (crop_height, crop_width, random_pad_and_resize[2], random_pad_and_resize[3])
+                        resize = (random_pad_and_resize[0], random_pad_and_resize[1])
 #                    else:
 #                        crop_width = img_width
 #                        crop_height = int(round(crop_width / resize_aspect_ratio))
@@ -618,8 +644,8 @@ class BatchGenerator:
 #                    if max_crop_and_resize:
 #                        p = np.random.uniform(0,1)
 #                        if p >= (1-full_crop_and_resize[4]):
-#                            random_crop = (crop_height, crop_width, full_crop_and_resize[2], full_crop_and_resize[3])
-#                            resize = (full_crop_and_resize[0], full_crop_and_resize[1])
+#                            random_crop = (crop_height, crop_width, random_pad_and_resize[2], random_pad_and_resize[3])
+#                            resize = (random_pad_and_resize[0], random_pad_and_resize[1])
 
                 if random_crop:
                     # Compute how much room we have in both dimensions to make a random crop.
@@ -730,8 +756,16 @@ class BatchGenerator:
                         elif (trial_counter >= random_crop[3]) and (not i in batch_items_to_remove): # If we've reached the trial limit and still not found a valid crop, remove this image from the batch
                             batch_items_to_remove.append(i)
 
+                if resize:
+                    batch_X[i] = cv2.resize(batch_X[i], dsize=(resize[1], resize[0]))
+                    batch_y[i][:,[xmin,xmax]] = (batch_y[i][:,[xmin,xmax]] * (resize[1] / img_width)).astype(np.int)
+                    batch_y[i][:,[ymin,ymax]] = (batch_y[i][:,[ymin,ymax]] * (resize[0] / img_height)).astype(np.int)
+                    img_height, img_width = resize # Updating these at this point is unnecessary, but it's one fewer source of error if this method gets expanded in the future
+
+
                 if crop:
                     # Crop the image
+                    # ToDo: check if still in image range
                     batch_X[i] = np.copy(batch_X[i][crop[0]:img_height-crop[1], crop[2]:img_width-crop[3]])
                     # Translate the box coordinates into the new coordinate system if necessary: The origin is shifted by `(crop[0], crop[2])` (i.e. by the top and left crop values)
                     # If nothing was cropped off from the top or left of the image, the coordinate system stays the same as before
@@ -772,19 +806,27 @@ class BatchGenerator:
                         if include_thresh == 0: batch_y[i] = batch_y[i][after_area > include_thresh * before_area] # If `include_thresh == 0`, we want to make sure that boxes with area 0 get thrown out, hence the ">" sign instead of the ">=" sign
                         else: batch_y[i] = batch_y[i][after_area >= include_thresh * before_area] # Especially for the case `include_thresh == 1` we want the ">=" sign, otherwise no boxes would be left at all
 
-                if resize:
-                    batch_X[i] = cv2.resize(batch_X[i], dsize=(resize[1], resize[0]))
-                    batch_y[i][:,[xmin,xmax]] = (batch_y[i][:,[xmin,xmax]] * (resize[1] / img_width)).astype(np.int)
-                    batch_y[i][:,[ymin,ymax]] = (batch_y[i][:,[ymin,ymax]] * (resize[0] / img_height)).astype(np.int)
-                    img_width, img_height = resize # Updating these at this point is unnecessary, but it's one fewer source of error if this method gets expanded in the future
-
                 if gray:
                     batch_X[i] = np.expand_dims(cv2.cvtColor(batch_X[i], cv2.COLOR_RGB2GRAY), axis=2)
 
+            # final check for correct patches - three has to be at least one gt box on the image
+            for i in range(len(batch_y)):
+                if len(batch_y[i])==0 and (not i in batch_items_to_remove): # If we've reached the trial limit and still not found a valid crop, remove this image from the batch
+                    #print('patch has no gt bbox')        
+                    batch_items_to_remove.append(i)
+                    
             # If any batch items need to be removed because of failed random cropping, remove them now.
             for j in sorted(batch_items_to_remove, reverse=True):
                 batch_X.pop(j)
                 batch_y.pop(j) # This isn't efficient, but this should hopefully not need to be done often anyway
+                
+             # Perform image transformations that can be bulk-applied to the whole batch.
+            if not (subtract_mean is None):
+                batch_X = batch_X.astype(np.int16) - np.array(subtract_mean)
+            if not (divide_by_stddev is None):
+                batch_X = batch_X.astype(np.int16) / np.array(divide_by_stddev)
+            if swap_channels:
+                batch_X = batch_X[:,:,:,[2, 1, 0]]
 
             if train: # During training we need the encoded labels instead of the format that `batch_y` has
                 if ssd_box_encoder is None:
